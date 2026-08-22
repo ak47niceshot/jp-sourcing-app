@@ -15,7 +15,8 @@ datasource db {
 model SavedCandidate {
   id                  Int      @id @default(autoincrement())
   keyword             String
-  koreaSignalJson     String
+  hsCode              String
+  tradeSignalJson     String
   japanCandidateJson  String
   marginInputJson     String
   marginResultJson    String
