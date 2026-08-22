@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import type { KoreaSignal } from "@/lib/naver";
-import type { RakutenItem } from "@/lib/rakuten";
+import type { TradeSignal } from "@/lib/trade";
+import type { YahooItem } from "@/lib/yahoo";
 import type { MarginResult } from "@/lib/margin";
 
 export default async function SavedPage() {
@@ -11,8 +11,9 @@ export default async function SavedPage() {
   const items = rows.map((row) => ({
     id: row.id,
     keyword: row.keyword,
-    koreaSignal: JSON.parse(row.koreaSignalJson) as KoreaSignal,
-    japanItem: JSON.parse(row.japanCandidateJson) as RakutenItem,
+    hsCode: row.hsCode,
+    tradeSignal: JSON.parse(row.tradeSignalJson) as TradeSignal,
+    japanItem: JSON.parse(row.japanCandidateJson) as YahooItem,
     marginResult: JSON.parse(row.marginResultJson) as MarginResult,
     aiComment: row.aiComment,
     createdAt: row.createdAt,
@@ -33,17 +34,19 @@ export default async function SavedPage() {
             className="border border-black/10 dark:border-white/10 rounded p-4"
           >
             <div className="flex items-baseline justify-between mb-2">
-              <h2 className="font-medium">{item.keyword}</h2>
+              <h2 className="font-medium">
+                {item.keyword} <span className="opacity-50 text-xs">HS {item.hsCode}</span>
+              </h2>
               <span className="text-xs opacity-50">
                 {new Date(item.createdAt).toLocaleString("ko-KR")}
               </span>
             </div>
             <p className="text-sm mb-2">{item.japanItem.itemName}</p>
             <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-1 text-sm mb-2">
-              <dt className="opacity-60">한국 판매처 수</dt>
-              <dd>{item.koreaSignal.totalSellers}</dd>
-              <dt className="opacity-60">한국 평균가</dt>
-              <dd>{item.koreaSignal.avgPrice.toLocaleString()}원</dd>
+              <dt className="opacity-60">대일본 수입액</dt>
+              <dd>${item.tradeSignal.totalImportDlr.toLocaleString()}</dd>
+              <dt className="opacity-60">대일본 수입중량</dt>
+              <dd>{item.tradeSignal.totalImportWgt.toLocaleString()} kg</dd>
               <dt className="opacity-60">예상 마진액</dt>
               <dd className={item.marginResult.marginKrw < 0 ? "text-red-500" : ""}>
                 {Math.round(item.marginResult.marginKrw).toLocaleString()}원

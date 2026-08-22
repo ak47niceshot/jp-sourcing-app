@@ -4,7 +4,7 @@ import { analyzeCandidate, AnalyzeInput } from "@/lib/analyze";
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as AnalyzeInput;
 
-  if (!body?.keyword || !body?.koreaSignal || !body?.japanItem || !body?.marginInputs || !body?.marginResult) {
+  if (!body?.keyword || !body?.tradeSignal || !body?.japanItem || !body?.marginInputs || !body?.marginResult) {
     return NextResponse.json({ error: "필수 데이터가 누락되었습니다." }, { status: 400 });
   }
 
