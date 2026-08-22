@@ -46,7 +46,6 @@ export async function fetchKoreaJapanTradeSignal(
   url.searchParams.set("endYymm", yyyymm(end));
   url.searchParams.set("cntyCd", "JP");
   url.searchParams.set("hsSgn", hsCode);
-  url.searchParams.set("type", "json");
   url.searchParams.set("numOfRows", "50");
 
   const res = await fetch(url, { cache: "no-store" });
@@ -55,20 +54,30 @@ export async function fetchKoreaJapanTradeSignal(
     throw new Error(`관세청 무역통계 API 요청 실패 (${res.status}): ${body}`);
   }
 
-  const data = await res.json();
-  const rawItems = data?.response?.body?.items?.item;
-  const items: any[] = Array.isArray(rawItems)
-    ? rawItems
-    : rawItems
-      ? [rawItems]
-      : [];
+  // 이 API는 type=json을 무시하고 항상 XML을 반환한다.
+  const xml = await res.text();
 
-  const monthly = items
-    .map((item) => ({
-      yearMonth: String(item.year ?? ""),
-      importDlr: Number(item.impDlr) || 0,
-      importWgt: Number(item.impWgt) || 0,
-      exportDlr: Number(item.expDlr) || 0,
+  const resultCode = xml.match(/<resultCode>([^<]*)<\/resultCode>/)?.[1];
+  if (resultCode && resultCode !== "00") {
+    const resultMsg = xml.match(/<resultMsg>([^<]*)<\/resultMsg>/)?.[1];
+    throw new Error(`관세청 무역통계 API 오류 (${resultCode}): ${resultMsg ?? xml}`);
+  }
+
+  function tag(block: string, name: string): string {
+    return block.match(new RegExp(`<${name}>([^<]*)</${name}>`))?.[1] ?? "";
+  }
+
+  const itemBlocks = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(
+    (m) => m[1]
+  );
+
+  const monthly = itemBlocks
+    .filter((block) => tag(block, "statCd") === "JP")
+    .map((block) => ({
+      yearMonth: tag(block, "year"),
+      importDlr: Number(tag(block, "impDlr")) || 0,
+      importWgt: Number(tag(block, "impWgt")) || 0,
+      exportDlr: Number(tag(block, "expDlr")) || 0,
     }))
     .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
 
