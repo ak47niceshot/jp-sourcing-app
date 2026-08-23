@@ -1,12 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { TradeSignal } from "@/lib/trade";
-import type { YahooItem } from "@/lib/yahoo";
+import type { RakutenItem } from "@/lib/rakuten";
 import type { MarginInputs, MarginResult } from "@/lib/margin";
 
 export type AnalyzeInput = {
   keyword: string;
   tradeSignal: TradeSignal;
-  japanItem: YahooItem;
+  japanItem: RakutenItem;
   marginInputs: MarginInputs;
   marginResult: MarginResult;
 };
@@ -36,10 +36,10 @@ ${input.keyword}
     .map((m) => `${m.yearMonth}: ${m.importDlr.toLocaleString()}달러`)
     .join(", ")}
 
-[일본 소싱 후보 - Yahoo! JAPAN 쇼핑 기준]
+[일본 소싱 후보 - 라쿠텐 기준 또는 직접 입력]
 - 상품명: ${input.japanItem.itemName}
 - 판매가: ${input.japanItem.priceJpy.toLocaleString()}엔
-- 판매자: ${input.japanItem.sellerName}
+- 판매자: ${input.japanItem.shopName}
 - 리뷰 수: ${input.japanItem.reviewCount}
 - 리뷰 평점: ${input.japanItem.reviewAverage}
 

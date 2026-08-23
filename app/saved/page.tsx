@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { TradeSignal } from "@/lib/trade";
-import type { YahooItem } from "@/lib/yahoo";
+import type { RakutenItem } from "@/lib/rakuten";
 import type { MarginResult } from "@/lib/margin";
 
 export default async function SavedPage() {
@@ -13,7 +13,7 @@ export default async function SavedPage() {
     keyword: row.keyword,
     hsCode: row.hsCode,
     tradeSignal: JSON.parse(row.tradeSignalJson) as TradeSignal,
-    japanItem: JSON.parse(row.japanCandidateJson) as YahooItem,
+    japanItem: JSON.parse(row.japanCandidateJson) as RakutenItem,
     marginResult: JSON.parse(row.marginResultJson) as MarginResult,
     aiComment: row.aiComment,
     createdAt: row.createdAt,

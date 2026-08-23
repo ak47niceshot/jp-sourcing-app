@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { TradeSignal } from "@/lib/trade";
-import type { YahooItem } from "@/lib/yahoo";
+import type { RakutenItem } from "@/lib/rakuten";
 import type { MarginInputs, MarginResult } from "@/lib/margin";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
     keyword: row.keyword,
     hsCode: row.hsCode,
     tradeSignal: JSON.parse(row.tradeSignalJson) as TradeSignal,
-    japanItem: JSON.parse(row.japanCandidateJson) as YahooItem,
+    japanItem: JSON.parse(row.japanCandidateJson) as RakutenItem,
     marginInputs: JSON.parse(row.marginInputJson) as MarginInputs,
     marginResult: JSON.parse(row.marginResultJson) as MarginResult,
     aiComment: row.aiComment,
