@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "일본 상품 소싱 리서치",
-  description: "한국-일본 오픈마켓 상품 소싱 경쟁력 리서치 도구",
+  title: "DilyJapan",
+  description: "일본→한국 상품 소싱 경쟁력 리서치 도구",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-black/10 dark:border-white/10">
           <nav className="max-w-5xl mx-auto flex items-center gap-6 px-6 py-4">
             <a href="/" className="font-semibold">
-              일본 상품 소싱
+              Dily<span className="text-blue-600 dark:text-blue-400">Japan</span>
             </a>
             <a href="/research" className="text-sm opacity-80 hover:opacity-100">
               리서치

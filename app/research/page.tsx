@@ -168,10 +168,10 @@ export default function ResearchPage() {
     const urlHsCode = params.get("hsCode") ?? "";
     const urlItemIndex = params.get("item");
 
-    if (!urlHsCode) return;
-
     setKeyword(urlKeyword);
     setHsCode(urlHsCode);
+
+    if (!urlHsCode) return;
 
     runSearch(urlKeyword, urlHsCode).then((data) => {
       if (!data || urlItemIndex === null) return;
