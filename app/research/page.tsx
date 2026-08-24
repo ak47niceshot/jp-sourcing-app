@@ -28,6 +28,7 @@ const EMPTY_JAPAN_ITEM: RakutenItem = {
   shopName: "",
   reviewCount: 0,
   reviewAverage: 0,
+  description: "",
 };
 
 type RecentSearch = { keyword: string; hsCode: string };
@@ -64,6 +65,11 @@ export default function ResearchPage() {
   const [marginInputs, setMarginInputs] = useState<MarginInputs | null>(null);
   const [aiComment, setAiComment] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [productDescription, setProductDescription] = useState<{
+    summaryKo: string;
+    keywords: string[];
+  } | null>(null);
+  const [describing, setDescribing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
@@ -198,6 +204,7 @@ export default function ResearchPage() {
     if (!item.itemName.trim() || item.priceJpy <= 0) return;
     setAiComment(null);
     setSaveMessage(null);
+    setProductDescription(null);
 
     const costKrw = item.priceJpy * fxRate;
     const landedCostKrw =
@@ -245,6 +252,26 @@ export default function ResearchPage() {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  async function handleDescribe() {
+    if (!japanItem.itemName.trim()) return;
+    setDescribing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/describe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ japanItem }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "상품 설명 생성 실패");
+      setProductDescription(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setDescribing(false);
     }
   }
 
@@ -613,6 +640,24 @@ export default function ResearchPage() {
                 </div>
               </div>
             </div>
+
+            {productDescription && (
+              <div className="mt-4 text-sm bg-black/5 dark:bg-white/10 rounded p-3">
+                <p className="whitespace-pre-wrap mb-2">{productDescription.summaryKo}</p>
+                {productDescription.keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {productDescription.keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="text-xs px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/15"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 mb-4">
@@ -622,6 +667,13 @@ export default function ResearchPage() {
               className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
             >
               {analyzing ? "분석 중..." : "AI 분석"}
+            </button>
+            <button
+              onClick={handleDescribe}
+              disabled={describing}
+              className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
+            >
+              {describing ? "설명 생성 중..." : "상품 설명 · 키워드"}
             </button>
             <button
               onClick={handleSave}
