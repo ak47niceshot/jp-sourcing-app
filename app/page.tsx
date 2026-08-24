@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import HomeSearchBox from "@/components/HomeSearchBox";
 
 export default async function HomePage() {
   const recent = await prisma.savedCandidate.findMany({
@@ -8,27 +9,37 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="text-2xl font-semibold mb-2">일본 상품 소싱 리서치</h1>
-        <p className="opacity-80 leading-relaxed">
-          키워드를 입력하면 한국 시장(네이버 쇼핑 기준) 경쟁 상황과 일본
-          소싱 후보(라쿠텐 기준)를 나란히 비교하고, 관세·배송비·수수료를
-          반영한 마진율까지 계산할 수 있어요.
+    <div className="flex flex-col">
+      <section className="min-h-[62vh] flex flex-col items-center justify-center text-center gap-6 px-4">
+        <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight">
+          <span>Dily</span>
+          <span className="text-blue-600 dark:text-blue-400">Japan</span>
+        </h1>
+        <p className="opacity-60 text-sm sm:text-base">
+          일본→한국 상품 소싱 리서치 · 관세청 데이터, 라쿠텐, 도매가, AI 분석까지 한
+          곳에서
         </p>
-        <Link
-          href="/research"
-          className="inline-block mt-4 px-4 py-2 rounded bg-foreground text-background text-sm font-medium"
-        >
-          리서치 시작하기
-        </Link>
+
+        <HomeSearchBox />
+
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm opacity-70">
+          <Link href="/research" className="hover:opacity-100 hover:underline">
+            리서치 열기
+          </Link>
+          <Link href="/wholesale" className="hover:opacity-100 hover:underline">
+            도매 상품
+          </Link>
+          <Link href="/saved" className="hover:opacity-100 hover:underline">
+            저장한 후보
+          </Link>
+        </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-semibold mb-3">최근 저장한 후보</h2>
-        {recent.length === 0 ? (
-          <p className="text-sm opacity-60">아직 저장한 후보가 없어요.</p>
-        ) : (
+      {recent.length > 0 && (
+        <section className="max-w-2xl mx-auto w-full px-4 pb-16">
+          <h2 className="text-xs font-medium opacity-50 uppercase tracking-wide mb-3">
+            최근 저장한 후보
+          </h2>
           <ul className="flex flex-col gap-2">
             {recent.map((item) => (
               <li
@@ -42,16 +53,14 @@ export default async function HomePage() {
               </li>
             ))}
           </ul>
-        )}
-        {recent.length > 0 && (
           <Link
             href="/saved"
             className="inline-block mt-3 text-sm underline opacity-80 hover:opacity-100"
           >
             전체 저장 목록 보기
           </Link>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
