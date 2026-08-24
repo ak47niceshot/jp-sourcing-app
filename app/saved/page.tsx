@@ -41,7 +41,17 @@ export default async function SavedPage() {
                 {new Date(item.createdAt).toLocaleString("ko-KR")}
               </span>
             </div>
-            <p className="text-sm mb-2">{item.japanItem.itemName}</p>
+            <div className="flex gap-3 mb-2">
+              {item.japanItem.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.japanItem.imageUrl}
+                  alt=""
+                  className="w-12 h-12 object-cover rounded shrink-0"
+                />
+              )}
+              <p className="text-sm self-center">{item.japanItem.itemName}</p>
+            </div>
             <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-1 text-sm mb-2">
               <dt className="opacity-60">대일본 수입액</dt>
               <dd>${item.tradeSignal.totalImportDlr.toLocaleString()}</dd>
