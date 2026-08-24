@@ -46,7 +46,10 @@ export async function fetchKoreaJapanTradeSignal(
   url.searchParams.set("endYymm", yyyymm(end));
   url.searchParams.set("cntyCd", "JP");
   url.searchParams.set("hsSgn", hsCode);
-  url.searchParams.set("numOfRows", "50");
+  // 4~6자리 HS코드는 하위 10자리 코드가 여러 개라 월별로 행이 여러 개 나뉘어
+  // 나온다 (예: HS 4820 -> 482010, 482020... 등). 12개월치를 다 받으려면
+  // 넉넉하게 잡아야 함.
+  url.searchParams.set("numOfRows", "500");
 
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -71,15 +74,31 @@ export async function fetchKoreaJapanTradeSignal(
     (m) => m[1]
   );
 
-  const monthly = itemBlocks
-    .filter((block) => tag(block, "statCd") === "JP")
-    .map((block) => ({
-      yearMonth: tag(block, "year"),
-      importDlr: Number(tag(block, "impDlr")) || 0,
-      importWgt: Number(tag(block, "impWgt")) || 0,
-      exportDlr: Number(tag(block, "expDlr")) || 0,
-    }))
-    .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+  // 조회한 HS코드보다 하위(더 긴) 코드가 여러 개 걸리면 같은 달이 여러 줄로
+  // 나뉘어 나온다 (예: HS 4820 -> 482010, 482020...) — 월별로 합산한다.
+  const monthlyByYearMonth = new Map<
+    string,
+    { yearMonth: string; importDlr: number; importWgt: number; exportDlr: number }
+  >();
+
+  for (const block of itemBlocks) {
+    if (tag(block, "statCd") !== "JP") continue;
+    const yearMonth = tag(block, "year");
+    const existing = monthlyByYearMonth.get(yearMonth) ?? {
+      yearMonth,
+      importDlr: 0,
+      importWgt: 0,
+      exportDlr: 0,
+    };
+    existing.importDlr += Number(tag(block, "impDlr")) || 0;
+    existing.importWgt += Number(tag(block, "impWgt")) || 0;
+    existing.exportDlr += Number(tag(block, "expDlr")) || 0;
+    monthlyByYearMonth.set(yearMonth, existing);
+  }
+
+  const monthly = [...monthlyByYearMonth.values()].sort((a, b) =>
+    a.yearMonth.localeCompare(b.yearMonth)
+  );
 
   return {
     hsCode,
