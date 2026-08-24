@@ -243,7 +243,7 @@ export default function ResearchPage() {
           </section>
 
           <section className="border border-black/10 dark:border-white/10 rounded p-4">
-            <div className="flex items-baseline justify-between mb-3">
+            <div className="flex items-baseline justify-between mb-1">
               <h2 className="font-semibold">일본 소싱 후보 (라쿠텐)</h2>
               <button
                 onClick={() => {
@@ -256,6 +256,13 @@ export default function ResearchPage() {
                 직접 입력할게요
               </button>
             </div>
+
+            {result.japanCandidates &&
+              result.japanCandidates.keyword !== keyword && (
+                <p className="text-xs opacity-50 mb-3">
+                  검색어 번역: {keyword} → {result.japanCandidates.keyword}
+                </p>
+              )}
 
             {result.japanCandidates && result.japanCandidates.items.length > 0 ? (
               <ul className="flex flex-col gap-2 max-h-96 overflow-y-auto">
