@@ -3,6 +3,8 @@ import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
 import type { MarginResult } from "@/lib/margin";
 
+export const dynamic = "force-dynamic";
+
 export default async function SavedPage() {
   const rows = await prisma.savedCandidate.findMany({
     orderBy: { createdAt: "desc" },

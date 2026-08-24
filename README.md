@@ -25,10 +25,11 @@ npm run dev
 
 `.env.example`을 참고해서 `.env`에 아래 값을 채워야 정상 동작한다:
 
+- `DATABASE_URL` — Neon Postgres 연결 문자열. Vercel 프로젝트에 Neon 스토리지를 연결하면 대시보드에서 그대로 복사할 수 있고, 로컬 개발도 이 DB(또는 별도 dev 브랜치)에 연결해서 씀
 - `TRADE_API_SERVICE_KEY` — [data.go.kr](https://www.data.go.kr) 가입 후 "관세청_품목별 국가별 수출입실적(GW)" 활용신청해서 발급받은 서비스키
 - `YAHOO_APP_ID` — [Yahoo! JAPAN Developer Network](https://developer.yahoo.co.jp/register/) 가입(이메일 가능) 후 발급받은 Client ID
 - `ANTHROPIC_API_KEY` — [console.anthropic.com](https://console.anthropic.com/) 계정 생성 후 발급
 
 ## 스택
 
-Next.js (App Router) + TypeScript + Tailwind, Prisma(SQLite 로컬 / Postgres 배포 예정).
+Next.js (App Router) + TypeScript + Tailwind, Prisma + Neon Postgres (로컬/배포 동일 DB, `@prisma/adapter-neon`).
