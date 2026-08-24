@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { calculateMargin, MarginInputs, MarginResult } from "@/lib/margin";
 import { suggestHsCodes } from "@/lib/hsCodes";
 import type { TradeSignal } from "@/lib/trade";
@@ -52,9 +52,20 @@ export default function ResearchPage() {
     ? calculateMargin(marginInputs)
     : null;
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!hsCode.trim()) return;
+  function updateUrl(nextKeyword: string, nextHsCode: string, itemIndex: number | null) {
+    const params = new URLSearchParams();
+    if (nextKeyword) params.set("keyword", nextKeyword);
+    if (nextHsCode) params.set("hsCode", nextHsCode);
+    if (itemIndex !== null) params.set("item", String(itemIndex));
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }
+
+  async function runSearch(
+    searchKeyword: string,
+    searchHsCode: string
+  ): Promise<ResearchResponse | null> {
+    if (!searchHsCode.trim()) return null;
 
     setLoading(true);
     setError(null);
@@ -70,40 +81,90 @@ export default function ResearchPage() {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword, hsCode }),
+        body: JSON.stringify({ keyword: searchKeyword, hsCode: searchHsCode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "요청 실패");
       setResult(data);
+      return data as ResearchResponse;
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
+      return null;
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSelectItem(index: number) {
-    if (!result?.japanCandidates) return;
-    const item = result.japanCandidates.items[index];
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    updateUrl(keyword, hsCode, null);
+    await runSearch(keyword, hsCode);
+  }
+
+  // 새로고침해도 검색 결과/선택 상품이 유지되도록 URL 쿼리에서 복원
+  const restoredFromUrl = useRef(false);
+  useEffect(() => {
+    if (restoredFromUrl.current) return;
+    restoredFromUrl.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const urlKeyword = params.get("keyword") ?? "";
+    const urlHsCode = params.get("hsCode") ?? "";
+    const urlItemIndex = params.get("item");
+
+    if (!urlHsCode) return;
+
+    setKeyword(urlKeyword);
+    setHsCode(urlHsCode);
+
+    runSearch(urlKeyword, urlHsCode).then((data) => {
+      if (!data || urlItemIndex === null) return;
+      const idx = Number(urlItemIndex);
+      const item = data.japanCandidates?.items[idx];
+      if (item) selectItemFromData(data, idx, item);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function selectItemFromData(data: ResearchResponse, index: number, item: RakutenItem) {
     setSelectedIndex(index);
     setShowManualEntry(false);
     setJapanItem(item);
-    startMargin(item);
+    startMargin(item, data.fxRate);
+  }
+
+  function handleSelectItem(index: number) {
+    if (!result?.japanCandidates) return;
+    const item = result.japanCandidates.items[index];
+    updateUrl(keyword, hsCode, index);
+    selectItemFromData(result, index, item);
   }
 
   function updateJapanItem<K extends keyof RakutenItem>(key: K, value: RakutenItem[K]) {
     setJapanItem((prev) => ({ ...prev, [key]: value }));
   }
 
-  function startMargin(item: RakutenItem) {
-    if (!result || !item.itemName.trim() || item.priceJpy <= 0) return;
+  function startMargin(item: RakutenItem, fxRate: number) {
+    if (!item.itemName.trim() || item.priceJpy <= 0) return;
     setAiComment(null);
     setSaveMessage(null);
+
+    const costKrw = item.priceJpy * fxRate;
+    const landedCostKrw =
+      (costKrw + DEFAULT_MARGIN_INPUTS.shippingKrw) *
+      (1 +
+        DEFAULT_MARGIN_INPUTS.customsDutyPercent / 100 +
+        DEFAULT_MARGIN_INPUTS.vatPercent / 100);
+    // 원가+배송비+관/부가세를 다 반영하고도 대략 20% 마진이 남는 가격으로 기본값을 잡는다
+    const TARGET_MARGIN_PERCENT = 20;
+    const denominator =
+      1 - DEFAULT_MARGIN_INPUTS.platformFeePercent / 100 - TARGET_MARGIN_PERCENT / 100;
+
     setMarginInputs({
       priceJpy: item.priceJpy,
-      fxRate: result.fxRate,
+      fxRate,
       ...DEFAULT_MARGIN_INPUTS,
-      targetSalePriceKrw: Math.round(item.priceJpy * result.fxRate * 1.6),
+      targetSalePriceKrw: Math.round(landedCostKrw / denominator),
     });
   }
 
@@ -267,10 +328,10 @@ export default function ResearchPage() {
             {result.japanCandidates && result.japanCandidates.items.length > 0 ? (
               <ul className="flex flex-col gap-2 max-h-96 overflow-y-auto">
                 {result.japanCandidates.items.map((item, i) => (
-                  <li key={i}>
+                  <li key={i} className="relative">
                     <button
                       onClick={() => handleSelectItem(i)}
-                      className={`w-full text-left text-xs rounded border px-3 py-2 transition flex gap-3 ${
+                      className={`w-full text-left text-xs rounded border px-3 py-2 pr-14 transition flex gap-3 ${
                         selectedIndex === i
                           ? "border-foreground bg-black/5 dark:bg-white/10"
                           : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30"
@@ -292,6 +353,17 @@ export default function ResearchPage() {
                         </div>
                       </div>
                     </button>
+                    {item.itemUrl && (
+                      <a
+                        href={item.itemUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-2 right-2 text-[10px] underline opacity-70 hover:opacity-100 bg-background px-1"
+                      >
+                        라쿠텐 ↗
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -334,7 +406,7 @@ export default function ResearchPage() {
                   </label>
                 </div>
                 <button
-                  onClick={() => startMargin(japanItem)}
+                  onClick={() => result && startMargin(japanItem, result.fxRate)}
                   disabled={!japanItem.itemName.trim() || japanItem.priceJpy <= 0}
                   className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
                 >
@@ -358,7 +430,19 @@ export default function ResearchPage() {
               />
             )}
             <h2 className="font-semibold self-center">
-              마진 계산기 — {japanItem.itemName}
+              마진 계산기 —{" "}
+              {japanItem.itemUrl ? (
+                <a
+                  href={japanItem.itemUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:opacity-80"
+                >
+                  {japanItem.itemName} ↗
+                </a>
+              ) : (
+                japanItem.itemName
+              )}
             </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
@@ -419,20 +503,49 @@ export default function ResearchPage() {
             </label>
           </div>
 
-          <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-1 text-sm mb-4 border-t border-black/10 dark:border-white/10 pt-3">
-            <dt className="opacity-60">원가(KRW 환산)</dt>
-            <dd>{Math.round(marginResult.costKrw).toLocaleString()}원</dd>
-            <dt className="opacity-60">관/부가세 반영 원가</dt>
-            <dd>{Math.round(marginResult.landedCostKrw).toLocaleString()}원</dd>
-            <dt className="opacity-60">마진액</dt>
-            <dd className={marginResult.marginKrw < 0 ? "text-red-500" : ""}>
-              {Math.round(marginResult.marginKrw).toLocaleString()}원
-            </dd>
-            <dt className="opacity-60">마진율</dt>
-            <dd className={marginResult.marginPercent < 0 ? "text-red-500" : ""}>
-              {marginResult.marginPercent.toFixed(1)}%
-            </dd>
-          </dl>
+          <div className="border-t border-black/10 dark:border-white/10 pt-3 mb-4">
+            <dl className="grid grid-cols-2 gap-y-1 text-sm mb-3">
+              <dt className="opacity-60">원가(KRW 환산)</dt>
+              <dd>{Math.round(marginResult.costKrw).toLocaleString()}원</dd>
+              <dt className="opacity-60">관/부가세 반영 원가</dt>
+              <dd>{Math.round(marginResult.landedCostKrw).toLocaleString()}원</dd>
+            </dl>
+
+            <div
+              className={`grid grid-cols-2 gap-4 rounded-lg p-4 ${
+                marginResult.marginKrw < 0
+                  ? "bg-red-500/10 border border-red-500/30"
+                  : "bg-green-500/10 border border-green-500/30"
+              }`}
+            >
+              <div>
+                <div className="text-xs opacity-60 mb-1">마진액</div>
+                <div
+                  className={`text-2xl font-bold ${
+                    marginResult.marginKrw < 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  {marginResult.marginKrw < 0 ? "-" : "+"}
+                  {Math.abs(Math.round(marginResult.marginKrw)).toLocaleString()}원
+                </div>
+              </div>
+              <div>
+                <div className="text-xs opacity-60 mb-1">마진율</div>
+                <div
+                  className={`text-2xl font-bold ${
+                    marginResult.marginPercent < 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  {marginResult.marginPercent >= 0 ? "+" : ""}
+                  {marginResult.marginPercent.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-2 mb-4">
             <button

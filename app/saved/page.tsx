@@ -50,7 +50,20 @@ export default async function SavedPage() {
                   className="w-12 h-12 object-cover rounded shrink-0"
                 />
               )}
-              <p className="text-sm self-center">{item.japanItem.itemName}</p>
+              <p className="text-sm self-center">
+                {item.japanItem.itemUrl ? (
+                  <a
+                    href={item.japanItem.itemUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:opacity-80"
+                  >
+                    {item.japanItem.itemName} ↗
+                  </a>
+                ) : (
+                  item.japanItem.itemName
+                )}
+              </p>
             </div>
             <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-1 text-sm mb-2">
               <dt className="opacity-60">대일본 수입액</dt>
