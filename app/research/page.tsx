@@ -516,16 +516,16 @@ export default function ResearchPage() {
             </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-            <label className="flex flex-col gap-1">
-              환율 (1엔 = ?원)
-              <input
-                type="number"
-                step="0.01"
-                value={marginInputs.fxRate}
-                onChange={(e) => updateMarginInput("fxRate", Number(e.target.value))}
-                className="border border-black/15 dark:border-white/20 rounded px-2 py-1 bg-transparent"
-              />
-            </label>
+            <div className="flex flex-col gap-1">
+              상품 원가 (원)
+              <div className="border border-transparent px-2 py-1 font-medium">
+                {Math.round(marginInputs.priceJpy * marginInputs.fxRate).toLocaleString()}원
+                <span className="opacity-50 font-normal">
+                  {" "}
+                  (환율 1엔={marginInputs.fxRate}원 자동 적용)
+                </span>
+              </div>
+            </div>
             <label className="flex flex-col gap-1">
               국제 배송비 (원)
               <input
@@ -575,8 +575,6 @@ export default function ResearchPage() {
 
           <div className="border-t border-black/10 dark:border-white/10 pt-3 mb-4">
             <dl className="grid grid-cols-2 gap-y-1 text-sm mb-3">
-              <dt className="opacity-60">원가(KRW 환산)</dt>
-              <dd>{Math.round(marginResult.costKrw).toLocaleString()}원</dd>
               <dt className="opacity-60">관/부가세 반영 원가</dt>
               <dd>{Math.round(marginResult.landedCostKrw).toLocaleString()}원</dd>
             </dl>
