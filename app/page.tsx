@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import HomeSearchBox from "@/components/HomeSearchBox";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const recent = await prisma.savedCandidate.findMany({
     orderBy: { createdAt: "desc" },
