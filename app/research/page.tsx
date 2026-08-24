@@ -30,6 +30,27 @@ const EMPTY_JAPAN_ITEM: RakutenItem = {
   reviewAverage: 0,
 };
 
+type RecentSearch = { keyword: string; hsCode: string };
+const RECENT_SEARCHES_KEY = "jp-sourcing-recent-searches";
+const MAX_RECENT_SEARCHES = 8;
+
+function loadRecentSearches(): RecentSearch[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearches(list: RecentSearch[]) {
+  try {
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(list));
+  } catch {
+    // 저장 실패해도 검색 자체엔 영향 없게 무시
+  }
+}
+
 export default function ResearchPage() {
   const [keyword, setKeyword] = useState("");
   const [hsCode, setHsCode] = useState("");
@@ -45,6 +66,25 @@ export default function ResearchPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches());
+  }, []);
+
+  function addRecentSearch(nextKeyword: string, nextHsCode: string) {
+    setRecentSearches((prev) => {
+      const deduped = prev.filter(
+        (s) => !(s.keyword === nextKeyword && s.hsCode === nextHsCode)
+      );
+      const next = [{ keyword: nextKeyword, hsCode: nextHsCode }, ...deduped].slice(
+        0,
+        MAX_RECENT_SEARCHES
+      );
+      saveRecentSearches(next);
+      return next;
+    });
+  }
 
   const hsSuggestions = suggestHsCodes(keyword);
 
@@ -97,8 +137,18 @@ export default function ResearchPage() {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+    if (!hsCode.trim()) return;
     updateUrl(keyword, hsCode, null);
+    addRecentSearch(keyword, hsCode);
     await runSearch(keyword, hsCode);
+  }
+
+  function handleRecentSearchClick(entry: RecentSearch) {
+    setKeyword(entry.keyword);
+    setHsCode(entry.hsCode);
+    updateUrl(entry.keyword, entry.hsCode, null);
+    addRecentSearch(entry.keyword, entry.hsCode);
+    runSearch(entry.keyword, entry.hsCode);
   }
 
   // 새로고침해도 검색 결과/선택 상품이 유지되도록 URL 쿼리에서 복원
@@ -258,7 +308,10 @@ export default function ResearchPage() {
               <button
                 key={s.code}
                 type="button"
-                onClick={() => setHsCode(s.code)}
+                onClick={() => {
+                  setHsCode(s.code);
+                  setKeyword(s.searchTerm);
+                }}
                 className={`px-2 py-1 rounded border ${
                   hsCode === s.code
                     ? "border-foreground bg-black/5 dark:bg-white/10"
@@ -266,6 +319,22 @@ export default function ResearchPage() {
                 }`}
               >
                 {s.label} ({s.code})
+              </button>
+            ))}
+          </div>
+        )}
+
+        {recentSearches.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="opacity-60 self-center">최근 검색:</span>
+            {recentSearches.map((s, i) => (
+              <button
+                key={`${s.keyword}-${s.hsCode}-${i}`}
+                type="button"
+                onClick={() => handleRecentSearchClick(s)}
+                className="px-2 py-1 rounded border border-black/15 dark:border-white/20 opacity-80 hover:opacity-100"
+              >
+                {s.keyword || "(키워드 없음)"} · HS {s.hsCode}
               </button>
             ))}
           </div>
@@ -348,8 +417,9 @@ export default function ResearchPage() {
                       <div>
                         <div className="font-medium line-clamp-2">{item.itemName}</div>
                         <div className="opacity-60 mt-1">
-                          {item.shopName} · {item.priceJpy.toLocaleString()}엔 · 리뷰{" "}
-                          {item.reviewCount}
+                          {item.shopName} · {item.priceJpy.toLocaleString()}엔 (≈
+                          {Math.round(item.priceJpy * (result?.fxRate ?? 0)).toLocaleString()}
+                          원) · 리뷰 {item.reviewCount}
                         </div>
                       </div>
                     </button>
