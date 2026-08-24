@@ -70,6 +70,11 @@ export default async function SavedPage() {
               <dd>${item.tradeSignal.totalImportDlr.toLocaleString()}</dd>
               <dt className="opacity-60">대일본 수입중량</dt>
               <dd>{item.tradeSignal.totalImportWgt.toLocaleString()} kg</dd>
+              <dt className="opacity-60">라쿠텐 판매가</dt>
+              <dd>
+                {item.japanItem.priceJpy.toLocaleString()}엔 (≈
+                {Math.round(item.marginResult.costKrw).toLocaleString()}원)
+              </dd>
               <dt className="opacity-60">예상 마진액</dt>
               <dd className={item.marginResult.marginKrw < 0 ? "text-red-500" : ""}>
                 {Math.round(item.marginResult.marginKrw).toLocaleString()}원
