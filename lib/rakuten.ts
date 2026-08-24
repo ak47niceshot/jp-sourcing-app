@@ -6,6 +6,8 @@ export type RakutenItem = {
   shopName: string;
   reviewCount: number;
   reviewAverage: number;
+  /** 라쿠텐 상품 상세 설명 원문(일본어). 검색 API 응답의 itemCaption. */
+  description: string;
 };
 
 export type JapanCandidates = {
@@ -61,6 +63,7 @@ export async function fetchJapanCandidatesByKeyword(
     shopName: item.shopName,
     reviewCount: Number(item.reviewCount) || 0,
     reviewAverage: Number(item.reviewAverage) || 0,
+    description: item.itemCaption ?? "",
   }));
 
   return { keyword, items };
