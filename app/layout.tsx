@@ -35,6 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <a href="/saved" className="text-sm opacity-80 hover:opacity-100">
               저장한 후보
             </a>
+            <a href="/wholesale" className="text-sm opacity-80 hover:opacity-100">
+              도매 상품
+            </a>
           </nav>
         </header>
         <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
