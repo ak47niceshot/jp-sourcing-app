@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const pretendard = localFont({
+  src: "../node_modules/pretendard/dist/public/variable/PretendardVariable.ttf",
+  variable: "--font-pretendard",
+  weight: "45 920",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -21,12 +24,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${pretendard.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <header className="border-b border-black/10 dark:border-white/10">
           <nav className="max-w-5xl mx-auto flex items-center gap-6 px-6 py-4">
-            <a href="/" className="font-semibold">
+            <a href="/" className="font-extrabold">
               Dily<span className="text-blue-600 dark:text-blue-400">Japan</span>
             </a>
             <a href="/research" className="text-sm opacity-80 hover:opacity-100">

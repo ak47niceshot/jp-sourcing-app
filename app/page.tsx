@@ -11,7 +11,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col">
       <section className="min-h-[62vh] flex flex-col items-center justify-center text-center gap-6 px-4">
-        <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight">
+        <h1 className="text-5xl sm:text-6xl font-black tracking-tight">
           <span>Dily</span>
           <span className="text-blue-600 dark:text-blue-400">Japan</span>
         </h1>
