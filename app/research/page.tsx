@@ -270,16 +270,26 @@ export default function ResearchPage() {
                   <li key={i}>
                     <button
                       onClick={() => handleSelectItem(i)}
-                      className={`w-full text-left text-xs rounded border px-3 py-2 transition ${
+                      className={`w-full text-left text-xs rounded border px-3 py-2 transition flex gap-3 ${
                         selectedIndex === i
                           ? "border-foreground bg-black/5 dark:bg-white/10"
                           : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30"
                       }`}
                     >
-                      <div className="font-medium line-clamp-2">{item.itemName}</div>
-                      <div className="opacity-60 mt-1">
-                        {item.shopName} · {item.priceJpy.toLocaleString()}엔 · 리뷰{" "}
-                        {item.reviewCount}
+                      {item.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          className="w-14 h-14 object-cover rounded shrink-0"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium line-clamp-2">{item.itemName}</div>
+                        <div className="opacity-60 mt-1">
+                          {item.shopName} · {item.priceJpy.toLocaleString()}엔 · 리뷰{" "}
+                          {item.reviewCount}
+                        </div>
                       </div>
                     </button>
                   </li>
@@ -338,9 +348,19 @@ export default function ResearchPage() {
 
       {marginInputs && marginResult && (
         <section className="border border-black/10 dark:border-white/10 rounded p-4">
-          <h2 className="font-semibold mb-3">
-            마진 계산기 — {japanItem.itemName}
-          </h2>
+          <div className="flex gap-3 mb-3">
+            {japanItem.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={japanItem.imageUrl}
+                alt=""
+                className="w-16 h-16 object-cover rounded shrink-0"
+              />
+            )}
+            <h2 className="font-semibold self-center">
+              마진 계산기 — {japanItem.itemName}
+            </h2>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
             <label className="flex flex-col gap-1">
               환율 (1엔 = ?원)
