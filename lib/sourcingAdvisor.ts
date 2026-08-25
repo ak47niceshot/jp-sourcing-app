@@ -52,19 +52,21 @@ export async function generateSourcingRecommendations(
 
   const message = await client.messages.create({
     model: "claude-opus-5",
-    max_tokens: 8000,
+    max_tokens: 4000,
+    output_config: { effort: "low" },
     tools: [
       {
         type: "web_search_20260209",
         name: "web_search",
-        max_uses: 5,
+        max_uses: 3,
       },
     ],
     messages: [
       {
         role: "user",
         content: `너는 일본→한국 상품 소싱(수입 후 국내 판매) 전문가야. 아래 참고 자료를 보고,
-지금 소싱해볼 만한 구체적인 상품을 5~8개 추천해줘.
+지금 소싱해볼 만한 구체적인 상품을 정확히 5개 추천해줘. 웹 검색은 꼭 필요한 곳에만 아껴서 써
+(최대 3번).
 
 [참고: 네이버 쇼핑 트렌드 (한국 소비자 관심도)]
 ${trendSummary}

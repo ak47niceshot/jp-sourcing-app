@@ -3,9 +3,10 @@ import { computeTrendDashboard } from "@/lib/trendDashboard";
 import { generateSourcingRecommendations } from "@/lib/sourcingAdvisor";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
 
-// AI가 웹 검색을 여러 번 하면서 답을 만들어서 기본 10초 제한으로는 부족함 —
-// Vercel Hobby 플랜 최대치인 60초까지 늘려둔다.
-export const maxDuration = 60;
+// AI가 웹 검색을 여러 번 하면서 답을 만들어서 기본 10초 제한으로는 부족함.
+// 60초로도 타임아웃 나서(2026-08-25 실측) Fluid Compute 여유치까지 늘려본다 —
+// 플랜에서 허용 안 하면 배포 자체가 거부되니 그때 다시 낮추면 됨.
+export const maxDuration = 120;
 
 export async function GET(req: Request) {
   try {
