@@ -23,6 +23,7 @@ export default function TrendsPage() {
   );
   const [recLoading, setRecLoading] = useState(true);
   const [recError, setRecError] = useState<string | null>(null);
+  const [recGeneratedAt, setRecGeneratedAt] = useState<string | null>(null);
 
   const [items, setItems] = useState<TrendDashboardItem[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,10 @@ export default function TrendsPage() {
         const res = await fetch("/api/sourcing-advisor");
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "요청 실패");
-        if (!cancelled) setRecommendations(data.recommendations);
+        if (!cancelled) {
+          setRecommendations(data.recommendations);
+          setRecGeneratedAt(data.generatedAt ?? null);
+        }
       } catch (err) {
         if (!cancelled) setRecError(err instanceof Error ? err.message : "알 수 없는 오류");
       } finally {
@@ -133,10 +137,16 @@ export default function TrendsPage() {
 
       <section className="border border-black/10 dark:border-white/10 rounded p-4">
         <h2 className="font-semibold mb-1">AI 소싱 추천</h2>
-        <p className="text-xs opacity-50 mb-3">
+        <p className="text-xs opacity-50 mb-1">
           AI가 웹 검색으로 추정한 가격·마진이라 참고용이에요 — 실제 소싱 전엔 직접 한 번 더
           확인해주세요. 카테고리도 화장품·패션에 국한하지 않고 넓게 찾아봐요.
         </p>
+        {recGeneratedAt && (
+          <p className="text-xs opacity-40 mb-3">
+            {new Date(recGeneratedAt).toLocaleString("ko-KR")} 기준 (하루에 한 번만
+            새로 계산돼요)
+          </p>
+        )}
 
         {recLoading && (
           <p className="text-xs opacity-50">

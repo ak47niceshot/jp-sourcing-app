@@ -40,6 +40,15 @@ model TrendSnapshot {
   @@index([keyword, categoryCode, capturedAt])
 }
 
+// AI 소싱 추천(웹 검색 포함 Claude 호출) 결과를 캐싱 — 방문할 때마다 다시 돌리면
+// 크레딧이 너무 많이 들어서, 하루에 한 번 정도만 새로 계산하고 그 사이엔 이 캐시를 보여준다.
+// 파라미터가 없는 단일 결과라 항상 id=1 하나만 사용(upsert).
+model SourcingAdvisorCache {
+  id                  Int      @id
+  recommendationsJson String
+  generatedAt         DateTime @default(now())
+}
+
 // 사용자가 업로드한 도매 사이트(예: 슈퍼딜리버리) 상품 CSV를 파싱해서 저장.
 // 정식 API가 없어서, 회원이 승인받은 공급사의 상품 정보를 공식 CSV
 // 다운로드 기능으로 받아 직접 업로드하는 방식.
