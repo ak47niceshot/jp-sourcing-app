@@ -20,7 +20,7 @@ type AiSourcingSuggestion = {
   japanRetailPriceJpy: number;
   japanWholesalePriceJpy: number | null;
   koreaAvgPriceKrw: number;
-  sourceUrl: string | null;
+  sourceUrls: string[];
 };
 
 function sanitizePageUrl(value: unknown): string | null {
@@ -33,9 +33,11 @@ function sanitizePageUrl(value: unknown): string | null {
   }
 }
 
-export type SourcingRecommendation = Omit<AiSourcingSuggestion, "sourceUrl"> & {
+export type SourcingRecommendation = Omit<AiSourcingSuggestion, "sourceUrls"> & {
   imageUrl: string | null;
   fxRate: number;
+  japanRetailPriceKrw: number;
+  japanWholesalePriceKrw: number | null;
   landedCostKrw: number;
   platformFeeKrw: number;
   marginKrw: number;
@@ -120,14 +122,17 @@ ${priceGapSummary}
 5. japanWholesalePriceJpy: 일본 도매가 (정수, 엔화). 확인 안 되면 null.
 6. koreaAvgPriceKrw: 한국 시장 평균 판매가 (정수, 원화, 웹 검색으로 확인한 실제 가격대의 대표값
    하나 — 범위 말고 숫자 하나로)
-7. sourceUrl: 이 상품의 가격을 확인하려고 실제로 웹 검색해서 들어가본 판매 페이지의 URL
-   (쿠팡/라쿠텐/아마존재팬/네이버쇼핑 등 실제 상품 상세 페이지 하나). 검색 결과 목록 URL이나
-   지어낸 URL 말고, 진짜 접속해서 가격을 확인한 그 페이지 주소만. 확실하지 않으면 null.
+7. sourceUrls: 이 상품의 가격을 확인하려고 실제로 웹 검색해서 들어가본 상품 상세 페이지
+   URL을 최대 3개까지 배열로. 검색 결과 목록 URL이나 지어낸 URL 말고, 진짜 접속해서
+   가격을 확인한 페이지 주소만. 여러 사이트에서 같은 상품을 봤다면 전부 적어줘 — 특히
+   쿠팡/지마켓/네이버쇼핑은 이미지를 막아놓는 경우가 많으니, 같은 상품을 라쿠텐/11번가/
+   무신사/옥션/다나와/브랜드 공식몰 등 다른 사이트에서도 봤다면 그 URL도 꼭 같이 넣어줘.
+   하나도 확실하지 않으면 빈 배열 [].
 
 숫자 필드는 콤마나 단위 없이 순수 정수로만 답해 (예: 12000, "12,000원" 아님).
 
 반드시 아래 JSON 배열 형식으로만 답해 (다른 설명 텍스트 없이, 코드블록도 없이):
-[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"sourceUrl":null}]`,
+[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"sourceUrls":[]}]`,
       },
     ],
   });
@@ -152,7 +157,9 @@ ${priceGapSummary}
           ? null
           : Number(p.japanWholesalePriceJpy) || null,
       koreaAvgPriceKrw: Number(p.koreaAvgPriceKrw) || 0,
-      sourceUrl: sanitizePageUrl(p.sourceUrl),
+      sourceUrls: Array.isArray(p.sourceUrls)
+        ? p.sourceUrls.map(sanitizePageUrl).filter((u: string | null): u is string => u !== null)
+        : [],
     }));
   } catch {
     return [];
@@ -162,7 +169,7 @@ ${priceGapSummary}
 
   return Promise.all(
     suggestions.map(async (s) => {
-      const { sourceUrl, ...rest } = s;
+      const { sourceUrls, ...rest } = s;
       const costJpy = s.japanWholesalePriceJpy ?? s.japanRetailPriceJpy;
       const marginResult = calculateMargin({
         priceJpy: costJpy,
@@ -173,12 +180,15 @@ ${priceGapSummary}
         platformFeePercent: PLATFORM_FEE_PERCENT,
         targetSalePriceKrw: s.koreaAvgPriceKrw,
       });
-      const imageUrl = sourceUrl ? await fetchOgImage(sourceUrl) : null;
+      const imageUrl = sourceUrls.length > 0 ? await fetchOgImage(sourceUrls) : null;
 
       return {
         ...rest,
         imageUrl,
         fxRate,
+        japanRetailPriceKrw: s.japanRetailPriceJpy * fxRate,
+        japanWholesalePriceKrw:
+          s.japanWholesalePriceJpy !== null ? s.japanWholesalePriceJpy * fxRate : null,
         landedCostKrw: marginResult.landedCostKrw,
         platformFeeKrw: marginResult.platformFeeKrw,
         marginKrw: marginResult.marginKrw,
