@@ -35,7 +35,7 @@ export default async function HomePage() {
             href="/trends"
             className="rounded-full border border-black/15 dark:border-white/20 px-5 py-2 font-medium opacity-80 hover:opacity-100 hover:border-blue-500 transition"
           >
-            동향 보기
+            AI추천 보기
           </Link>
           <Link
             href="/wholesale"
