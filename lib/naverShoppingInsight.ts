@@ -9,12 +9,13 @@ export type ShoppingCategoryTrend = {
  * 상품명/가격은 안 주는 트렌드 전용 API라, "요즘 어떤 카테고리가 뜨는지" 파악용으로만 쓴다.
  *
  * 2026-07-31 이후 신규 발급은 개발자센터가 아니라 NAVER API HUB(Naver Cloud Platform)를
- * 통해서만 가능 — 도메인/인증 헤더가 기존 openapi.naver.com 방식과 다르다.
- * https://naverapihub.apigw.ntruss.com/datalab/v1/...
+ * 통해서만 가능 — 도메인/인증 헤더/경로가 기존 openapi.naver.com 방식과 다르다.
+ * NAVER API HUB 콘솔의 "쇼핑 인사이트 > 분야별 트렌드 조회" 개발 가이드로 확인함(2026-08-25).
+ * POST https://naverapihub.apigw.ntruss.com/shopping/v1/categories
  *
- * 카테고리 코드는 아직 실제 키로 검증하지 않았다 (2026-08-25 기준, NAVER_CLIENT_ID/SECRET
- * 발급 전) — lib/hsCodes.ts 사례처럼, 발급 후 실제 API 응답으로 하나씩 검증해서
- * lib/naverShoppingCategories.ts 같은 큐레이션 목록을 채워야 한다. 여기서는 호출부만 구현.
+ * 분야 코드(category.param)는 공식 코드표가 따로 없고, 네이버쇼핑(shopping.naver.com)에서
+ * 카테고리 클릭 시 URL의 cat_id 값으로 확인하는 방식 — lib/hsCodes.ts처럼 확인된 값만
+ * lib/naverShoppingCategories.ts에 큐레이션해서 채워나간다.
  */
 type TrendOptions = {
   startDate?: string;
@@ -44,7 +45,7 @@ export async function fetchShoppingCategoryTrend(
       .slice(0, 10);
 
   const res = await fetch(
-    "https://naverapihub.apigw.ntruss.com/datalab/v1/shopping/categories",
+    "https://naverapihub.apigw.ntruss.com/shopping/v1/categories",
     {
       method: "POST",
       headers: {
