@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { calculateMargin, MarginInputs, MarginResult } from "@/lib/margin";
 import { suggestHsCodes } from "@/lib/hsCodes";
 import { SHOPPING_CATEGORIES } from "@/lib/naverShoppingCategories";
+import { SHOPPING_KEYWORDS_BY_CATEGORY } from "@/lib/naverShoppingKeywords";
 import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
 import type { ShoppingCategoryTrend, ShoppingKeywordTrend } from "@/lib/naverShoppingInsight";
@@ -120,9 +121,9 @@ export default function ResearchPage() {
     }
   }
 
-  async function handleCategoryKeywordCheck(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedCategoryCode || !categoryKeyword.trim()) return;
+  async function handleCategoryKeywordCheck(nextKeyword: string) {
+    setCategoryKeyword(nextKeyword);
+    if (!selectedCategoryCode || !nextKeyword) return;
     setCategoryKeywordLoading(true);
     setCategoryKeywordError(null);
     setCategoryKeywordTrend(null);
@@ -132,7 +133,7 @@ export default function ResearchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           categoryCode: selectedCategoryCode,
-          keyword: categoryKeyword.trim(),
+          keyword: nextKeyword,
         }),
       });
       const data = await res.json();
@@ -441,28 +442,23 @@ export default function ResearchPage() {
         )}
 
         {selectedCategoryCode && (
-          <form
-            onSubmit={handleCategoryKeywordCheck}
-            className="mt-4 border-t border-black/10 dark:border-white/10 pt-3"
-          >
-            <p className="text-xs opacity-60 mb-2">
-              이 카테고리 안에서 세부 키워드 트렌드 확인 (예: 스킨토너, 틴트, 원피스...)
-            </p>
-            <div className="flex gap-2 mb-2">
-              <input
-                value={categoryKeyword}
-                onChange={(e) => setCategoryKeyword(e.target.value)}
-                placeholder="키워드 입력"
-                className="flex-1 border border-black/15 dark:border-white/20 rounded px-2 py-1 text-xs bg-transparent"
-              />
-              <button
-                type="submit"
-                disabled={categoryKeywordLoading || !categoryKeyword.trim()}
-                className="px-3 py-1 rounded border border-black/20 dark:border-white/20 text-xs disabled:opacity-50"
-              >
-                {categoryKeywordLoading ? "확인 중..." : "확인"}
-              </button>
-            </div>
+          <div className="mt-4 border-t border-black/10 dark:border-white/10 pt-3">
+            <p className="text-xs opacity-60 mb-2">이 카테고리 안의 세부 키워드 트렌드</p>
+            <select
+              value={categoryKeyword}
+              onChange={(e) => handleCategoryKeywordCheck(e.target.value)}
+              className="w-full border border-black/15 dark:border-white/20 rounded px-2 py-1 text-xs bg-transparent mb-2"
+            >
+              <option value="">키워드 선택...</option>
+              {(SHOPPING_KEYWORDS_BY_CATEGORY[selectedCategoryCode] ?? []).map((kw) => (
+                <option key={kw} value={kw}>
+                  {kw}
+                </option>
+              ))}
+            </select>
+            {categoryKeywordLoading && (
+              <p className="text-xs opacity-50">불러오는 중...</p>
+            )}
             {categoryKeywordError && (
               <p className="text-xs text-red-600 dark:text-red-400">
                 {categoryKeywordError}
@@ -487,7 +483,7 @@ export default function ResearchPage() {
             {categoryKeywordTrend && categoryKeywordTrend.points.length === 0 && (
               <p className="text-xs opacity-50">이 키워드는 데이터가 없어요.</p>
             )}
-          </form>
+          </div>
         )}
       </section>
 
