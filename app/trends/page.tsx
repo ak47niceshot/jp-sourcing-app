@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { suggestHsCodes } from "@/lib/hsCodes";
+import { getCategoryImage } from "@/lib/categoryImage";
 import type { TrendDashboardItem } from "@/lib/trendDashboard";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
 import type { SourcingRecommendation } from "@/lib/sourcingAdvisor";
@@ -163,45 +164,52 @@ export default function TrendsPage() {
           <p className="text-xs opacity-50">추천을 만들지 못했어요. 새로고침해서 다시 시도해보세요.</p>
         )}
         {recommendations && recommendations.length > 0 && (
-          <div className="flex flex-col gap-3 mt-2">
-            {recommendations.map((rec, i) => (
-              <div
-                key={`${rec.productName}-${i}`}
-                className="rounded-xl border border-black/10 dark:border-white/10 bg-background p-4 hover:border-blue-500/40 transition"
-              >
-                <div className="flex items-baseline justify-between mb-2 gap-2">
-                  <h3 className="font-bold">{rec.productName}</h3>
-                  <span className="text-xs opacity-50 shrink-0">{rec.category}</span>
-                </div>
-                <p className="text-sm opacity-80 mb-3">{rec.reasoning}</p>
-                <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-black/[0.03] dark:bg-white/[0.04] rounded-lg p-3">
-                  <div>
-                    <dt className="opacity-50 mb-0.5">한국 판매가</dt>
-                    <dd className="font-semibold">{rec.koreaPriceRangeKrw}</dd>
-                  </div>
-                  <div>
-                    <dt className="opacity-50 mb-0.5">일본 원가</dt>
-                    <dd className="font-semibold">{rec.japanCostNote}</dd>
-                  </div>
-                  <div>
-                    <dt className="opacity-50 mb-0.5">예상 마진</dt>
-                    <dd className="font-semibold text-blue-600 dark:text-blue-400">
-                      {rec.estimatedMarginNote}
-                    </dd>
-                  </div>
-                </dl>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            {recommendations.map((rec, i) => {
+              const verdict = rec.verdict === "추천" ? "추천" : "지켜보기";
+              return (
                 <Link
+                  key={`${rec.productName}-${i}`}
                   href={`/research?keyword=${encodeURIComponent(rec.productName)}${
                     suggestHsCodes(rec.productName)[0]
                       ? `&hsCode=${encodeURIComponent(suggestHsCodes(rec.productName)[0].code)}`
                       : ""
                   }`}
-                  className="inline-block mt-3 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  className="group rounded-xl border border-black/10 dark:border-white/10 bg-background overflow-hidden hover:border-blue-500/40 hover:shadow-md transition"
                 >
-                  리서치에서 찾아보기 →
+                  <div className="relative aspect-[4/3] w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getCategoryImage(rec.category)}
+                      alt=""
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span
+                      className={`absolute top-2 right-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        verdict === "추천"
+                          ? "bg-blue-600 text-white"
+                          : "bg-black/60 text-white dark:bg-white/80 dark:text-black"
+                      }`}
+                    >
+                      {verdict}
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-bold text-sm truncate">{rec.productName}</h3>
+                    <p className="text-xs opacity-50 truncate mb-2">{rec.reasoning}</p>
+                    <div className="flex items-center gap-1.5 text-xs font-medium">
+                      <span className="opacity-60">{rec.japanCostNote}</span>
+                      <span className="opacity-40">→</span>
+                      <span className="opacity-60">{rec.koreaPriceRangeKrw}</span>
+                      <span className="opacity-40">·</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">
+                        {rec.estimatedMarginNote}
+                      </span>
+                    </div>
+                  </div>
                 </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

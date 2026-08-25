@@ -5,6 +5,7 @@ import type { PriceGapItem } from "@/app/api/price-gap/route";
 export type SourcingRecommendation = {
   productName: string;
   category: string;
+  verdict: "추천" | "지켜보기";
   reasoning: string;
   koreaPriceRangeKrw: string;
   japanCostNote: string;
@@ -81,13 +82,14 @@ ${priceGapSummary}
 
 각 추천 상품마다:
 1. 구체적인 상품명/종류 (예: "무선 넥밴드 선풍기" 같이 뭉뚱그리지 않고 구체적으로)
-2. 추천 이유 (수요 신호, 트렌드, 또는 시장 상황)
-3. 한국 시장 평균 판매가 범위 (웹 검색으로 확인한 실제 가격대, 원화)
-4. 일본 쪽 예상 원가 (참고자료에 있으면 활용, 없으면 대략적인 추정)
-5. 예상 마진에 대한 코멘트 (관세/배송비/수수료 감안한 대략적인 판단)
+2. verdict: 마진과 수요 신호가 뚜렷하게 좋으면 "추천", 애매하거나 지켜봐야 하면 "지켜보기" 둘 중 하나
+3. 추천 이유를 한 문장으로 짧게 (한글 40자 내외, 핵심만)
+4. 한국 시장 평균 판매가 범위 (웹 검색으로 확인한 실제 가격대, 원화)
+5. 일본 쪽 예상 원가 (참고자료에 있으면 활용, 없으면 대략적인 추정)
+6. 예상 마진에 대한 짧은 코멘트 (관세/배송비/수수료 감안, 한글 20자 내외)
 
 반드시 아래 JSON 배열 형식으로만 답해 (다른 설명 텍스트 없이, 코드블록도 없이):
-[{"productName":"...","category":"...","reasoning":"...","koreaPriceRangeKrw":"...","japanCostNote":"...","estimatedMarginNote":"..."}]`,
+[{"productName":"...","category":"...","verdict":"추천 또는 지켜보기","reasoning":"...","koreaPriceRangeKrw":"...","japanCostNote":"...","estimatedMarginNote":"..."}]`,
       },
     ],
   });
@@ -104,6 +106,7 @@ ${priceGapSummary}
     return parsed.map((p) => ({
       productName: String(p.productName ?? ""),
       category: String(p.category ?? ""),
+      verdict: p.verdict === "추천" ? "추천" : "지켜보기",
       reasoning: String(p.reasoning ?? ""),
       koreaPriceRangeKrw: String(p.koreaPriceRangeKrw ?? ""),
       japanCostNote: String(p.japanCostNote ?? ""),
