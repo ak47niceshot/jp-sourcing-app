@@ -129,7 +129,7 @@ export default function TrendsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-black mb-1">동향</h1>
+        <h1 className="text-2xl font-black mb-1">AI추천</h1>
         <p className="text-sm opacity-60">
           AI가 네이버·관세청 데이터를 참고하고 실시간 웹 검색으로 한국 시장가까지 찾아서,
           지금 소싱해볼 만한 상품을 구체적으로 추천해드려요.

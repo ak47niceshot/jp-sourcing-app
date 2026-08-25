@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 href="/trends"
                 className="text-sm font-medium opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
               >
-                동향
+                AI추천
               </a>
               <a
                 href="/saved"
