@@ -176,8 +176,12 @@ export default function TrendsPage() {
                   <div className="relative sm:w-44 shrink-0 aspect-[4/3] sm:aspect-auto overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={getCategoryImage(rec.category)}
+                      src={rec.imageUrl ?? getCategoryImage(rec.category)}
                       alt=""
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = getCategoryImage(rec.category);
+                      }}
                       className="w-full h-full object-cover"
                     />
                     <span
