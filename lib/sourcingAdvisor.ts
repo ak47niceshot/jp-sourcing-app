@@ -3,6 +3,7 @@ import type { TrendDashboardItem } from "@/lib/trendDashboard";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
 import { calculateMargin } from "@/lib/margin";
 import { fetchJpyToKrwRate } from "@/lib/fx";
+import { fetchOgImage } from "@/lib/ogImage";
 import { SOURCING_CATEGORIES, type SourcingCategory } from "@/lib/categoryImage";
 
 // 나머지 페이지(리서치/도매)와 같은 기본 가정치 — 마진 계산 공식을 앱 전체에서 통일한다.
@@ -19,19 +20,21 @@ type AiSourcingSuggestion = {
   japanRetailPriceJpy: number;
   japanWholesalePriceJpy: number | null;
   koreaAvgPriceKrw: number;
-  imageUrl: string | null;
+  sourceUrl: string | null;
 };
 
-// AI가 웹 검색 중 실제로 들른 상품 페이지에서 이미지 URL을 알려주면 써보고, 없거나
-// 이미지가 아닌 것 같으면 버린다(할루시네이션 방지) — 화면에서는 이 URL이 깨지면
-// 카테고리 대표 사진으로 자동 대체한다(app/trends/page.tsx의 onError 참고).
-const DIRECT_IMAGE_URL_PATTERN = /^https:\/\/.+\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i;
-
-function sanitizeImageUrl(value: unknown): string | null {
-  return typeof value === "string" && DIRECT_IMAGE_URL_PATTERN.test(value) ? value : null;
+function sanitizePageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
-export type SourcingRecommendation = AiSourcingSuggestion & {
+export type SourcingRecommendation = Omit<AiSourcingSuggestion, "sourceUrl"> & {
+  imageUrl: string | null;
   fxRate: number;
   landedCostKrw: number;
   platformFeeKrw: number;
@@ -117,13 +120,14 @@ ${priceGapSummary}
 5. japanWholesalePriceJpy: 일본 도매가 (정수, 엔화). 확인 안 되면 null.
 6. koreaAvgPriceKrw: 한국 시장 평균 판매가 (정수, 원화, 웹 검색으로 확인한 실제 가격대의 대표값
    하나 — 범위 말고 숫자 하나로)
-7. imageUrl: 웹 검색 중 실제로 들어간 상품 판매 페이지에서 확인한 상품 이미지의 직접 URL
-   (jpg/png/webp/gif로 끝나는 이미지 파일 링크만). 확실하지 않으면 절대 지어내지 말고 null.
+7. sourceUrl: 이 상품의 가격을 확인하려고 실제로 웹 검색해서 들어가본 판매 페이지의 URL
+   (쿠팡/라쿠텐/아마존재팬/네이버쇼핑 등 실제 상품 상세 페이지 하나). 검색 결과 목록 URL이나
+   지어낸 URL 말고, 진짜 접속해서 가격을 확인한 그 페이지 주소만. 확실하지 않으면 null.
 
 숫자 필드는 콤마나 단위 없이 순수 정수로만 답해 (예: 12000, "12,000원" 아님).
 
 반드시 아래 JSON 배열 형식으로만 답해 (다른 설명 텍스트 없이, 코드블록도 없이):
-[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"imageUrl":null}]`,
+[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"sourceUrl":null}]`,
       },
     ],
   });
@@ -148,7 +152,7 @@ ${priceGapSummary}
           ? null
           : Number(p.japanWholesalePriceJpy) || null,
       koreaAvgPriceKrw: Number(p.koreaAvgPriceKrw) || 0,
-      imageUrl: sanitizeImageUrl(p.imageUrl),
+      sourceUrl: sanitizePageUrl(p.sourceUrl),
     }));
   } catch {
     return [];
@@ -156,29 +160,34 @@ ${priceGapSummary}
 
   const fxRate = await fetchJpyToKrwRate();
 
-  return suggestions.map((s) => {
-    const costJpy = s.japanWholesalePriceJpy ?? s.japanRetailPriceJpy;
-    const marginResult = calculateMargin({
-      priceJpy: costJpy,
-      fxRate,
-      shippingKrw: SHIPPING_KRW,
-      customsDutyPercent: CUSTOMS_DUTY_PERCENT,
-      vatPercent: VAT_PERCENT,
-      platformFeePercent: PLATFORM_FEE_PERCENT,
-      targetSalePriceKrw: s.koreaAvgPriceKrw,
-    });
+  return Promise.all(
+    suggestions.map(async (s) => {
+      const { sourceUrl, ...rest } = s;
+      const costJpy = s.japanWholesalePriceJpy ?? s.japanRetailPriceJpy;
+      const marginResult = calculateMargin({
+        priceJpy: costJpy,
+        fxRate,
+        shippingKrw: SHIPPING_KRW,
+        customsDutyPercent: CUSTOMS_DUTY_PERCENT,
+        vatPercent: VAT_PERCENT,
+        platformFeePercent: PLATFORM_FEE_PERCENT,
+        targetSalePriceKrw: s.koreaAvgPriceKrw,
+      });
+      const imageUrl = sourceUrl ? await fetchOgImage(sourceUrl) : null;
 
-    return {
-      ...s,
-      fxRate,
-      landedCostKrw: marginResult.landedCostKrw,
-      platformFeeKrw: marginResult.platformFeeKrw,
-      marginKrw: marginResult.marginKrw,
-      marginPercent: marginResult.marginPercent,
-      verdict:
-        marginResult.marginPercent >= RECOMMEND_MARGIN_THRESHOLD_PERCENT
-          ? "추천"
-          : "지켜보기",
-    };
-  });
+      return {
+        ...rest,
+        imageUrl,
+        fxRate,
+        landedCostKrw: marginResult.landedCostKrw,
+        platformFeeKrw: marginResult.platformFeeKrw,
+        marginKrw: marginResult.marginKrw,
+        marginPercent: marginResult.marginPercent,
+        verdict:
+          marginResult.marginPercent >= RECOMMEND_MARGIN_THRESHOLD_PERCENT
+            ? "추천"
+            : "지켜보기",
+      };
+    })
+  );
 }
