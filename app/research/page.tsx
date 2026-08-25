@@ -6,7 +6,8 @@ import { suggestHsCodes } from "@/lib/hsCodes";
 import { SHOPPING_CATEGORIES } from "@/lib/naverShoppingCategories";
 import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
-import type { ShoppingCategoryTrend } from "@/lib/naverShoppingInsight";
+import type { ShoppingCategoryTrend, ShoppingKeywordTrend } from "@/lib/naverShoppingInsight";
+import type { SearchTrendGroup } from "@/lib/naverSearchTrend";
 
 type ResearchResponse = {
   tradeSignal: TradeSignal;
@@ -81,6 +82,16 @@ export default function ResearchPage() {
   const [trendLoading, setTrendLoading] = useState(false);
   const [trendError, setTrendError] = useState<string | null>(null);
 
+  const [categoryKeyword, setCategoryKeyword] = useState("");
+  const [categoryKeywordTrend, setCategoryKeywordTrend] =
+    useState<ShoppingKeywordTrend | null>(null);
+  const [categoryKeywordLoading, setCategoryKeywordLoading] = useState(false);
+  const [categoryKeywordError, setCategoryKeywordError] = useState<string | null>(null);
+
+  const [searchTrend, setSearchTrend] = useState<SearchTrendGroup | null>(null);
+  const [searchTrendLoading, setSearchTrendLoading] = useState(false);
+  const [searchTrendError, setSearchTrendError] = useState<string | null>(null);
+
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
   }, []);
@@ -90,6 +101,9 @@ export default function ResearchPage() {
     setTrendLoading(true);
     setTrendError(null);
     setTrend(null);
+    setCategoryKeyword("");
+    setCategoryKeywordTrend(null);
+    setCategoryKeywordError(null);
     try {
       const res = await fetch("/api/trend", {
         method: "POST",
@@ -103,6 +117,52 @@ export default function ResearchPage() {
       setTrendError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
       setTrendLoading(false);
+    }
+  }
+
+  async function handleCategoryKeywordCheck(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedCategoryCode || !categoryKeyword.trim()) return;
+    setCategoryKeywordLoading(true);
+    setCategoryKeywordError(null);
+    setCategoryKeywordTrend(null);
+    try {
+      const res = await fetch("/api/shopping-keyword-trend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryCode: selectedCategoryCode,
+          keyword: categoryKeyword.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "요청 실패");
+      setCategoryKeywordTrend(data);
+    } catch (err) {
+      setCategoryKeywordError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setCategoryKeywordLoading(false);
+    }
+  }
+
+  async function handleSearchTrendCheck() {
+    if (!keyword.trim()) return;
+    setSearchTrendLoading(true);
+    setSearchTrendError(null);
+    setSearchTrend(null);
+    try {
+      const res = await fetch("/api/search-trend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: keyword.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "요청 실패");
+      setSearchTrend(data);
+    } catch (err) {
+      setSearchTrendError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setSearchTrendLoading(false);
     }
   }
 
@@ -379,6 +439,56 @@ export default function ResearchPage() {
         {trend && trend.points.length === 0 && (
           <p className="text-xs opacity-50">이 카테고리는 데이터가 없어요.</p>
         )}
+
+        {selectedCategoryCode && (
+          <form
+            onSubmit={handleCategoryKeywordCheck}
+            className="mt-4 border-t border-black/10 dark:border-white/10 pt-3"
+          >
+            <p className="text-xs opacity-60 mb-2">
+              이 카테고리 안에서 세부 키워드 트렌드 확인 (예: 스킨토너, 틴트, 원피스...)
+            </p>
+            <div className="flex gap-2 mb-2">
+              <input
+                value={categoryKeyword}
+                onChange={(e) => setCategoryKeyword(e.target.value)}
+                placeholder="키워드 입력"
+                className="flex-1 border border-black/15 dark:border-white/20 rounded px-2 py-1 text-xs bg-transparent"
+              />
+              <button
+                type="submit"
+                disabled={categoryKeywordLoading || !categoryKeyword.trim()}
+                className="px-3 py-1 rounded border border-black/20 dark:border-white/20 text-xs disabled:opacity-50"
+              >
+                {categoryKeywordLoading ? "확인 중..." : "확인"}
+              </button>
+            </div>
+            {categoryKeywordError && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {categoryKeywordError}
+              </p>
+            )}
+            {categoryKeywordTrend && categoryKeywordTrend.points.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {categoryKeywordTrend.points.map((p) => (
+                  <div key={p.period} className="flex items-center gap-2 text-xs">
+                    <span className="w-24 shrink-0 opacity-60">{p.period}</span>
+                    <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
+                      <div
+                        className="bg-purple-600 dark:bg-purple-400 h-3 rounded"
+                        style={{ width: `${Math.max(p.ratio, 2)}%` }}
+                      />
+                    </div>
+                    <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {categoryKeywordTrend && categoryKeywordTrend.points.length === 0 && (
+              <p className="text-xs opacity-50">이 키워드는 데이터가 없어요.</p>
+            )}
+          </form>
+        )}
       </section>
 
       <form onSubmit={handleSearch} className="flex flex-col gap-3">
@@ -389,6 +499,14 @@ export default function ResearchPage() {
             placeholder="예: 휴대용 선풍기, 화장품, 문구류..."
             className="flex-1 border border-black/15 dark:border-white/20 rounded px-3 py-2 bg-transparent"
           />
+          <button
+            type="button"
+            onClick={handleSearchTrendCheck}
+            disabled={searchTrendLoading || !keyword.trim()}
+            className="px-3 py-2 rounded border border-black/20 dark:border-white/20 text-xs disabled:opacity-50 shrink-0"
+          >
+            {searchTrendLoading ? "확인 중..." : "검색어 트렌드"}
+          </button>
           <input
             value={hsCode}
             onChange={(e) => setHsCode(e.target.value)}
@@ -443,6 +561,35 @@ export default function ResearchPage() {
           </div>
         )}
       </form>
+
+      {searchTrendError && (
+        <p className="text-xs text-red-600 dark:text-red-400">{searchTrendError}</p>
+      )}
+      {searchTrend && (
+        <div className="border border-black/10 dark:border-white/10 rounded p-3">
+          <p className="text-xs opacity-60 mb-2">
+            &ldquo;{searchTrend.title}&rdquo; 네이버 통합검색 트렌드
+          </p>
+          {searchTrend.points.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {searchTrend.points.map((p) => (
+                <div key={p.period} className="flex items-center gap-2 text-xs">
+                  <span className="w-24 shrink-0 opacity-60">{p.period}</span>
+                  <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
+                    <div
+                      className="bg-green-600 dark:bg-green-400 h-3 rounded"
+                      style={{ width: `${Math.max(p.ratio, 2)}%` }}
+                    />
+                  </div>
+                  <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs opacity-50">이 키워드는 데이터가 없어요.</p>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
