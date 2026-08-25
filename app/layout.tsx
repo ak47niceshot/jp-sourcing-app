@@ -35,6 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <a href="/research" className="text-sm opacity-80 hover:opacity-100">
               리서치
             </a>
+            <a href="/trends" className="text-sm opacity-80 hover:opacity-100">
+              동향
+            </a>
             <a href="/saved" className="text-sm opacity-80 hover:opacity-100">
               저장한 후보
             </a>
