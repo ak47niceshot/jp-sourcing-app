@@ -211,9 +211,15 @@ export default function TrendsPage() {
                       <div>
                         <dt className="opacity-50 mb-0.5">일본 소매가 / 도매가</dt>
                         <dd className="font-semibold">
-                          {Math.round(rec.japanRetailPriceJpy).toLocaleString()}엔
-                          {rec.japanWholesalePriceJpy !== null &&
-                            ` / ${Math.round(rec.japanWholesalePriceJpy).toLocaleString()}엔`}
+                          {Math.round(rec.japanRetailPriceJpy).toLocaleString()}엔 (≈
+                          {Math.round(rec.japanRetailPriceKrw).toLocaleString()}원)
+                          {rec.japanWholesalePriceJpy !== null && (
+                            <>
+                              {" / "}
+                              {Math.round(rec.japanWholesalePriceJpy).toLocaleString()}엔 (≈
+                              {Math.round(rec.japanWholesalePriceKrw ?? 0).toLocaleString()}원)
+                            </>
+                          )}
                         </dd>
                       </div>
                       <div>
