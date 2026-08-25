@@ -5,7 +5,6 @@ import { calculateMargin, MarginInputs, MarginResult } from "@/lib/margin";
 import { suggestHsCodes } from "@/lib/hsCodes";
 import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
-import type { TrendDashboardItem } from "@/app/api/trend-dashboard/route";
 
 type ResearchResponse = {
   tradeSignal: TradeSignal;
@@ -75,36 +74,8 @@ export default function ResearchPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
-  const [dashboardItems, setDashboardItems] = useState<TrendDashboardItem[] | null>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
-  const searchFormRef = useRef<HTMLFormElement | null>(null);
-
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setDashboardLoading(true);
-      setDashboardError(null);
-      try {
-        const res = await fetch("/api/trend-dashboard");
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "요청 실패");
-        if (!cancelled) setDashboardItems(data.items);
-      } catch (err) {
-        if (!cancelled) {
-          setDashboardError(err instanceof Error ? err.message : "알 수 없는 오류");
-        }
-      } finally {
-        if (!cancelled) setDashboardLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   function addRecentSearch(nextKeyword: string, nextHsCode: string) {
@@ -184,18 +155,6 @@ export default function ResearchPage() {
     updateUrl(entry.keyword, entry.hsCode, null);
     addRecentSearch(entry.keyword, entry.hsCode);
     runSearch(entry.keyword, entry.hsCode);
-  }
-
-  function handleDashboardItemClick(item: TrendDashboardItem) {
-    const matchedHsCode = suggestHsCodes(item.keyword)[0]?.code ?? "";
-    setKeyword(item.keyword);
-    setHsCode(matchedHsCode);
-    updateUrl(item.keyword, matchedHsCode, null);
-    if (matchedHsCode) {
-      addRecentSearch(item.keyword, matchedHsCode);
-      runSearch(item.keyword, matchedHsCode);
-    }
-    searchFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function selectItemFromData(data: ResearchResponse, index: number, item: RakutenItem) {
@@ -346,55 +305,7 @@ export default function ResearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="border border-black/10 dark:border-white/10 rounded p-4">
-        <h2 className="font-semibold mb-1">지금 뜨는 순위 (네이버 쇼핑인사이트)</h2>
-        <p className="text-xs opacity-50 mb-3">
-          최근 완결된 2주 평균을 그 이전 평균과 비교한 증감율 순 · 상품명·가격은 안 나와요 —
-          클릭하면 바로 라쿠텐에서 후보를 찾아드려요.
-        </p>
-
-        {dashboardLoading && <p className="text-xs opacity-50">순위 계산 중...</p>}
-        {dashboardError && (
-          <p className="text-xs text-red-600 dark:text-red-400">{dashboardError}</p>
-        )}
-        {dashboardItems && dashboardItems.length === 0 && (
-          <p className="text-xs opacity-50">계산할 데이터가 없어요.</p>
-        )}
-        {dashboardItems && dashboardItems.length > 0 && (
-          <ol className="flex flex-col gap-1.5">
-            {dashboardItems.map((item, i) => (
-              <li key={`${item.categoryCode}-${item.keyword}`}>
-                <button
-                  type="button"
-                  onClick={() => handleDashboardItemClick(item)}
-                  className="w-full flex items-center gap-3 text-left text-sm rounded border border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30 px-3 py-2 transition"
-                >
-                  <span className="w-5 shrink-0 opacity-40 text-xs">{i + 1}</span>
-                  <span className="flex-1">
-                    <span className="font-medium">{item.keyword}</span>
-                    <span className="text-xs opacity-50 ml-2">{item.categoryLabel}</span>
-                  </span>
-                  <span className="text-xs opacity-50 w-16 text-right">
-                    인기 {item.recentAvg.toFixed(0)}
-                  </span>
-                  <span
-                    className={`text-xs font-semibold w-16 text-right ${
-                      item.growthPercent >= 0
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {item.growthPercent >= 0 ? "▲" : "▼"}
-                    {Math.abs(item.growthPercent).toFixed(0)}%
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-
-      <form ref={searchFormRef} onSubmit={handleSearch} className="flex flex-col gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col gap-3">
         <div className="flex gap-2">
           <input
             value={keyword}
