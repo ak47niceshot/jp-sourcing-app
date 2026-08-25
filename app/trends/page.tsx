@@ -13,7 +13,7 @@ function growthLabel(percent: number) {
 
 function growthColor(percent: number) {
   return percent >= 0
-    ? "text-green-600 dark:text-green-400"
+    ? "text-blue-600 dark:text-blue-400"
     : "text-red-600 dark:text-red-400";
 }
 
@@ -128,15 +128,20 @@ export default function TrendsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-bold mb-1">동향</h1>
+        <h1 className="text-2xl font-black mb-1">동향</h1>
         <p className="text-sm opacity-60">
           AI가 네이버·관세청 데이터를 참고하고 실시간 웹 검색으로 한국 시장가까지 찾아서,
           지금 소싱해볼 만한 상품을 구체적으로 추천해드려요.
         </p>
       </div>
 
-      <section className="border border-black/10 dark:border-white/10 rounded p-4">
-        <h2 className="font-semibold mb-1">AI 소싱 추천</h2>
+      <section className="border-2 border-blue-500/30 rounded-xl p-4 sm:p-5 bg-blue-500/[0.03]">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">
+            AI
+          </span>
+          <h2 className="font-bold">지금 소싱하면 좋은 상품</h2>
+        </div>
         <p className="text-xs opacity-50 mb-1">
           AI가 웹 검색으로 추정한 가격·마진이라 참고용이에요 — 실제 소싱 전엔 직접 한 번 더
           확인해주세요. 카테고리도 화장품·패션에 국한하지 않고 넓게 찾아봐요.
@@ -158,29 +163,31 @@ export default function TrendsPage() {
           <p className="text-xs opacity-50">추천을 만들지 못했어요. 새로고침해서 다시 시도해보세요.</p>
         )}
         {recommendations && recommendations.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-2">
             {recommendations.map((rec, i) => (
               <div
                 key={`${rec.productName}-${i}`}
-                className="rounded border border-black/10 dark:border-white/10 p-4"
+                className="rounded-xl border border-black/10 dark:border-white/10 bg-background p-4 hover:border-blue-500/40 transition"
               >
-                <div className="flex items-baseline justify-between mb-2">
-                  <h3 className="font-semibold">{rec.productName}</h3>
-                  <span className="text-xs opacity-50">{rec.category}</span>
+                <div className="flex items-baseline justify-between mb-2 gap-2">
+                  <h3 className="font-bold">{rec.productName}</h3>
+                  <span className="text-xs opacity-50 shrink-0">{rec.category}</span>
                 </div>
                 <p className="text-sm opacity-80 mb-3">{rec.reasoning}</p>
-                <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-black/[0.03] dark:bg-white/[0.04] rounded-lg p-3">
                   <div>
                     <dt className="opacity-50 mb-0.5">한국 판매가</dt>
-                    <dd className="font-medium">{rec.koreaPriceRangeKrw}</dd>
+                    <dd className="font-semibold">{rec.koreaPriceRangeKrw}</dd>
                   </div>
                   <div>
                     <dt className="opacity-50 mb-0.5">일본 원가</dt>
-                    <dd className="font-medium">{rec.japanCostNote}</dd>
+                    <dd className="font-semibold">{rec.japanCostNote}</dd>
                   </div>
                   <div>
                     <dt className="opacity-50 mb-0.5">예상 마진</dt>
-                    <dd className="font-medium">{rec.estimatedMarginNote}</dd>
+                    <dd className="font-semibold text-blue-600 dark:text-blue-400">
+                      {rec.estimatedMarginNote}
+                    </dd>
                   </div>
                 </dl>
                 <Link
@@ -189,7 +196,7 @@ export default function TrendsPage() {
                       ? `&hsCode=${encodeURIComponent(suggestHsCodes(rec.productName)[0].code)}`
                       : ""
                   }`}
-                  className="inline-block mt-3 text-xs underline opacity-70 hover:opacity-100"
+                  className="inline-block mt-3 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   리서치에서 찾아보기 →
                 </Link>
@@ -202,14 +209,14 @@ export default function TrendsPage() {
       <button
         type="button"
         onClick={() => setShowRawData((v) => !v)}
-        className="text-xs underline opacity-60 hover:opacity-100 self-start"
+        className="text-xs font-medium opacity-60 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 self-start transition"
       >
         {showRawData ? "원본 데이터 숨기기" : "원본 데이터 보기 (네이버 트렌드 · 관세청 단가)"}
       </button>
 
       {showRawData && (
         <>
-          <section className="border border-black/10 dark:border-white/10 rounded p-4">
+          <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
             <h2 className="font-semibold mb-1">지금 뜨는 순위</h2>
             <p className="text-xs opacity-50 mb-3">
               작년 같은 시기 대비 증감율(YoY) 우선 정렬. 클릭하면 리서치 화면으로 넘어가서
@@ -229,7 +236,7 @@ export default function TrendsPage() {
                     <li key={`${item.categoryCode}-${item.keyword}`}>
                       <Link
                         href={href}
-                        className="w-full flex items-center gap-3 text-left text-sm rounded border border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30 px-3 py-2 transition"
+                        className="w-full flex items-center gap-3 text-left text-sm rounded-lg border border-black/10 dark:border-white/10 hover:border-blue-500/40 px-3 py-2 transition"
                       >
                         <span className="w-5 shrink-0 opacity-40 text-xs">{i + 1}</span>
                         <span className="flex-1">
@@ -264,7 +271,7 @@ export default function TrendsPage() {
             )}
           </section>
 
-          <section className="border border-black/10 dark:border-white/10 rounded p-4">
+          <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
             <h2 className="font-semibold mb-1">가격 신호</h2>
             <p className="text-xs opacity-50 mb-3">
               관세청 평균 수입단가($/kg) 증감. HS코드가 매칭되는 키워드만 계산돼요.
@@ -279,7 +286,7 @@ export default function TrendsPage() {
                 {priceGapItems.map((item) => (
                   <div
                     key={item.keyword}
-                    className="flex items-center gap-3 text-sm rounded border border-black/10 dark:border-white/10 px-3 py-2"
+                    className="flex items-center gap-3 text-sm rounded-lg border border-black/10 dark:border-white/10 px-3 py-2"
                   >
                     <span className="flex-1">
                       <span className="font-medium">{item.keyword}</span>

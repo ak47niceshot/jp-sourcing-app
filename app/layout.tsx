@@ -27,23 +27,37 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${pretendard.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="border-b border-black/10 dark:border-white/10">
-          <nav className="max-w-5xl mx-auto flex items-center gap-6 px-6 py-4">
-            <a href="/" className="font-extrabold">
+        <header className="sticky top-0 z-10 border-b border-black/10 dark:border-white/10 bg-background/80 backdrop-blur">
+          <nav className="max-w-5xl mx-auto flex items-center gap-7 px-6 py-4">
+            <a href="/" className="text-lg font-black tracking-tight shrink-0">
               Dily<span className="text-blue-600 dark:text-blue-400">Japan</span>
             </a>
-            <a href="/research" className="text-sm opacity-80 hover:opacity-100">
-              리서치
-            </a>
-            <a href="/trends" className="text-sm opacity-80 hover:opacity-100">
-              동향
-            </a>
-            <a href="/saved" className="text-sm opacity-80 hover:opacity-100">
-              저장한 후보
-            </a>
-            <a href="/wholesale" className="text-sm opacity-80 hover:opacity-100">
-              도매 상품
-            </a>
+            <div className="flex items-center gap-5">
+              <a
+                href="/research"
+                className="text-sm font-medium opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              >
+                리서치
+              </a>
+              <a
+                href="/trends"
+                className="text-sm font-medium opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              >
+                동향
+              </a>
+              <a
+                href="/saved"
+                className="text-sm font-medium opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              >
+                저장한 후보
+              </a>
+              <a
+                href="/wholesale"
+                className="text-sm font-medium opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              >
+                도매 상품
+              </a>
+            </div>
           </nav>
         </header>
         <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">

@@ -16,7 +16,7 @@ export default function HomeSearchBox() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xl">
-      <div className="flex items-center gap-2 border border-black/15 dark:border-white/20 rounded-full px-5 py-3 shadow-sm hover:shadow-md focus-within:shadow-md transition-shadow">
+      <div className="flex items-center gap-2 border border-black/15 dark:border-white/20 rounded-full px-5 py-3 shadow-sm hover:shadow-md focus-within:shadow-md focus-within:border-blue-500 transition-all">
         <svg
           width="18"
           height="18"
