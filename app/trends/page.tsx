@@ -164,50 +164,90 @@ export default function TrendsPage() {
           <p className="text-xs opacity-50">추천을 만들지 못했어요. 새로고침해서 다시 시도해보세요.</p>
         )}
         {recommendations && recommendations.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <div className="flex flex-col gap-3 mt-2">
             {recommendations.map((rec, i) => {
-              const verdict = rec.verdict === "추천" ? "추천" : "지켜보기";
+              const isLoss = rec.marginPercent < 0;
+              const totalCostKrw = rec.landedCostKrw + rec.platformFeeKrw;
               return (
-                <Link
+                <div
                   key={`${rec.productName}-${i}`}
-                  href={`/research?keyword=${encodeURIComponent(rec.productName)}${
-                    suggestHsCodes(rec.productName)[0]
-                      ? `&hsCode=${encodeURIComponent(suggestHsCodes(rec.productName)[0].code)}`
-                      : ""
-                  }`}
-                  className="group rounded-xl border border-black/10 dark:border-white/10 bg-background overflow-hidden hover:border-blue-500/40 hover:shadow-md transition"
+                  className="rounded-xl border border-black/10 dark:border-white/10 bg-background overflow-hidden hover:border-blue-500/40 transition sm:flex"
                 >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden">
+                  <div className="relative sm:w-44 shrink-0 aspect-[4/3] sm:aspect-auto overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getCategoryImage(rec.category)}
                       alt=""
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover"
                     />
                     <span
-                      className={`absolute top-2 right-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                        verdict === "추천"
+                      className={`absolute top-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        rec.verdict === "추천"
                           ? "bg-blue-600 text-white"
                           : "bg-black/60 text-white dark:bg-white/80 dark:text-black"
                       }`}
                     >
-                      {verdict}
+                      {rec.verdict}
                     </span>
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-bold text-sm truncate">{rec.productName}</h3>
-                    <p className="text-xs opacity-50 truncate mb-2">{rec.reasoning}</p>
-                    <div className="flex items-center gap-1.5 text-xs font-medium">
-                      <span className="opacity-60">{rec.japanCostNote}</span>
-                      <span className="opacity-40">→</span>
-                      <span className="opacity-60">{rec.koreaPriceRangeKrw}</span>
-                      <span className="opacity-40">·</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">
-                        {rec.estimatedMarginNote}
-                      </span>
+
+                  <div className="flex-1 p-4 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <h3 className="font-bold">{rec.productName}</h3>
+                      <span className="text-xs opacity-50 shrink-0">{rec.category}</span>
                     </div>
+
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-black/[0.03] dark:bg-white/[0.04] rounded-lg p-3 mb-3">
+                      <div>
+                        <dt className="opacity-50 mb-0.5">한국 평균 판매가</dt>
+                        <dd className="font-semibold">
+                          {Math.round(rec.koreaAvgPriceKrw).toLocaleString()}원
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="opacity-50 mb-0.5">일본 소매가 / 도매가</dt>
+                        <dd className="font-semibold">
+                          {Math.round(rec.japanRetailPriceJpy).toLocaleString()}엔
+                          {rec.japanWholesalePriceJpy !== null &&
+                            ` / ${Math.round(rec.japanWholesalePriceJpy).toLocaleString()}엔`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="opacity-50 mb-0.5">총원가(관/부가세·배송·수수료)</dt>
+                        <dd className="font-semibold">
+                          {Math.round(totalCostKrw).toLocaleString()}원
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="opacity-50 mb-0.5">예상 마진</dt>
+                        <dd
+                          className={`font-bold ${
+                            isLoss
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-blue-600 dark:text-blue-400"
+                          }`}
+                        >
+                          {Math.round(rec.marginKrw).toLocaleString()}원 (
+                          {rec.marginPercent >= 0 ? "+" : ""}
+                          {rec.marginPercent.toFixed(1)}%)
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <p className="text-sm opacity-80 whitespace-pre-wrap">{rec.reasoning}</p>
+
+                    <Link
+                      href={`/research?keyword=${encodeURIComponent(rec.productName)}${
+                        suggestHsCodes(rec.productName)[0]
+                          ? `&hsCode=${encodeURIComponent(suggestHsCodes(rec.productName)[0].code)}`
+                          : ""
+                      }`}
+                      className="inline-block mt-3 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      리서치에서 찾아보기 →
+                    </Link>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
