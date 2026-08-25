@@ -30,6 +30,10 @@ export const maxDuration = 120;
 const CACHE_ID = 1;
 const CACHE_TTL_HOURS = 24;
 
+// 임시: og:image 추출 로직 배포 직후 캐시를 한 번 강제로 새로 계산해서 실제로
+// 작동하는지 바로 확인하려는 용도. 확인 끝나면 이 상수와 조건은 지운다.
+const FORCE_REFRESH_AFTER = new Date("2026-08-25T17:20:00Z");
+
 export async function GET(req: Request) {
   try {
     const cached = await prisma.sourcingAdvisorCache.findUnique({
@@ -42,7 +46,12 @@ export async function GET(req: Request) {
       ? JSON.parse(cached.recommendationsJson)
       : null;
 
-    if (cached && ageHours < CACHE_TTL_HOURS && isFreshSchema(cachedRecommendations)) {
+    if (
+      cached &&
+      ageHours < CACHE_TTL_HOURS &&
+      isFreshSchema(cachedRecommendations) &&
+      cached.generatedAt > FORCE_REFRESH_AFTER
+    ) {
       return NextResponse.json({
         recommendations: cachedRecommendations,
         generatedAt: cached.generatedAt,
