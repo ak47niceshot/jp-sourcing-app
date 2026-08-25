@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { computeTrendDashboard } from "@/lib/trendDashboard";
 import { generateSourcingRecommendations } from "@/lib/sourcingAdvisor";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
@@ -8,8 +9,26 @@ import type { PriceGapItem } from "@/app/api/price-gap/route";
 // 플랜에서 허용 안 하면 배포 자체가 거부되니 그때 다시 낮추면 됨.
 export const maxDuration = 120;
 
+const CACHE_ID = 1;
+const CACHE_TTL_HOURS = 24;
+
 export async function GET(req: Request) {
   try {
+    const cached = await prisma.sourcingAdvisorCache.findUnique({
+      where: { id: CACHE_ID },
+    });
+    const ageHours = cached
+      ? (Date.now() - cached.generatedAt.getTime()) / (1000 * 60 * 60)
+      : Infinity;
+
+    if (cached && ageHours < CACHE_TTL_HOURS) {
+      return NextResponse.json({
+        recommendations: JSON.parse(cached.recommendationsJson),
+        generatedAt: cached.generatedAt,
+        cached: true,
+      });
+    }
+
     const trendItems = await computeTrendDashboard();
 
     // price-gap은 같은 배포 안의 라우트를 내부적으로 다시 호출 — 로직 재사용을 위해
@@ -29,7 +48,23 @@ export async function GET(req: Request) {
       priceGapItems
     );
 
-    return NextResponse.json({ recommendations });
+    const cache = await prisma.sourcingAdvisorCache.upsert({
+      where: { id: CACHE_ID },
+      create: {
+        id: CACHE_ID,
+        recommendationsJson: JSON.stringify(recommendations),
+      },
+      update: {
+        recommendationsJson: JSON.stringify(recommendations),
+        generatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      recommendations,
+      generatedAt: cache.generatedAt,
+      cached: false,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     return NextResponse.json({ error: message }, { status: 500 });
