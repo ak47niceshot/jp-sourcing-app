@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { calculateMargin, MarginInputs, MarginResult } from "@/lib/margin";
 import { suggestHsCodes } from "@/lib/hsCodes";
+import { SHOPPING_CATEGORIES } from "@/lib/naverShoppingCategories";
 import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
+import type { ShoppingCategoryTrend } from "@/lib/naverShoppingInsight";
 
 type ResearchResponse = {
   tradeSignal: TradeSignal;
@@ -74,9 +76,35 @@ export default function ResearchPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
+  const [selectedCategoryCode, setSelectedCategoryCode] = useState<string | null>(null);
+  const [trend, setTrend] = useState<ShoppingCategoryTrend | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendError, setTrendError] = useState<string | null>(null);
+
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
   }, []);
+
+  async function handleCategoryClick(code: string, label: string) {
+    setSelectedCategoryCode(code);
+    setTrendLoading(true);
+    setTrendError(null);
+    setTrend(null);
+    try {
+      const res = await fetch("/api/trend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryName: label, categoryCode: code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "요청 실패");
+      setTrend(data);
+    } catch (err) {
+      setTrendError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setTrendLoading(false);
+    }
+  }
 
   function addRecentSearch(nextKeyword: string, nextHsCode: string) {
     setRecentSearches((prev) => {
@@ -305,6 +333,51 @@ export default function ResearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <section className="border border-black/10 dark:border-white/10 rounded p-4">
+        <h2 className="font-semibold mb-1">요즘 뜨는 카테고리 (네이버 쇼핑인사이트)</h2>
+        <p className="text-xs opacity-50 mb-3">
+          한국 소비자의 실제 클릭 트렌드 (0~100 상대 지수) · 상품명·가격은 안 나와요 —
+          아이템 후보는 아래에서 라쿠텐으로 검색해서 찾아보세요.
+        </p>
+        <div className="flex flex-wrap gap-2 text-xs mb-3">
+          {SHOPPING_CATEGORIES.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => handleCategoryClick(c.code, c.label)}
+              className={`px-2 py-1 rounded border ${
+                selectedCategoryCode === c.code
+                  ? "border-foreground bg-black/5 dark:bg-white/10"
+                  : "border-black/15 dark:border-white/20"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {trendLoading && <p className="text-xs opacity-50">불러오는 중...</p>}
+        {trendError && (
+          <p className="text-xs text-red-600 dark:text-red-400">{trendError}</p>
+        )}
+        {trend && trend.points.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {trend.points.map((p) => (
+              <div key={p.period} className="flex items-center gap-2 text-xs">
+                <span className="w-24 shrink-0 opacity-60">{p.period}</span>
+                <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
+                  <div
+                    className="bg-blue-600 dark:bg-blue-400 h-3 rounded"
+                    style={{ width: `${Math.max(p.ratio, 2)}%` }}
+                  />
+                </div>
+                <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <form onSubmit={handleSearch} className="flex flex-col gap-3">
         <div className="flex gap-2">
           <input
