@@ -57,7 +57,7 @@ export async function generateSourcingRecommendations(
       {
         type: "web_search_20260209",
         name: "web_search",
-        max_uses: 8,
+        max_uses: 5,
       },
     ],
     messages: [

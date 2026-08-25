@@ -3,6 +3,10 @@ import { computeTrendDashboard } from "@/lib/trendDashboard";
 import { generateSourcingRecommendations } from "@/lib/sourcingAdvisor";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
 
+// AI가 웹 검색을 여러 번 하면서 답을 만들어서 기본 10초 제한으로는 부족함 —
+// Vercel Hobby 플랜 최대치인 60초까지 늘려둔다.
+export const maxDuration = 60;
+
 export async function GET(req: Request) {
   try {
     const trendItems = await computeTrendDashboard();
