@@ -15,7 +15,8 @@ function isFreshSchema(value: unknown): boolean {
         record &&
         typeof record === "object" &&
         typeof record.koreaAvgPriceKrw === "number" &&
-        typeof record.marginPercent === "number"
+        typeof record.marginPercent === "number" &&
+        "imageUrl" in record
       );
     })
   );
