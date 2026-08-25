@@ -161,7 +161,9 @@ export default function TrendsPage() {
         )}
         {recError && <p className="text-xs text-red-600 dark:text-red-400">{recError}</p>}
         {recommendations && recommendations.length === 0 && (
-          <p className="text-xs opacity-50">추천을 만들지 못했어요. 새로고침해서 다시 시도해보세요.</p>
+          <p className="text-xs opacity-50">
+            지금은 마진이 확실히 남는 추천 상품을 찾지 못했어요. 내일 다시 확인해보세요.
+          </p>
         )}
         {recommendations && recommendations.length > 0 && (
           <div className="flex flex-col gap-3 mt-2">

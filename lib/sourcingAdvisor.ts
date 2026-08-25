@@ -12,6 +12,9 @@ const CUSTOMS_DUTY_PERCENT = 8;
 const VAT_PERCENT = 10;
 const PLATFORM_FEE_PERCENT = 10;
 const RECOMMEND_MARGIN_THRESHOLD_PERCENT = 15;
+// 마진이 이 값 이하로 계산되면 "추천 탭"에 노출할 이유가 없다고 보고 아예 제외한다 —
+// AI의 원가/판매가 추정이 낙관적이었을 뿐 실제로는 손해거나 남는 게 없는 상품이라서.
+const MIN_VIABLE_MARGIN_PERCENT = 0;
 
 type AiSourcingSuggestion = {
   productName: string;
@@ -85,7 +88,7 @@ export async function generateSourcingRecommendations(
 
   const message = await client.messages.create({
     model: "claude-opus-5",
-    max_tokens: 4000,
+    max_tokens: 5500,
     output_config: { effort: "low" },
     tools: [
       {
@@ -98,8 +101,13 @@ export async function generateSourcingRecommendations(
       {
         role: "user",
         content: `너는 일본→한국 상품 소싱(수입 후 국내 판매) 전문가야. 아래 참고 자료를 보고,
-지금 소싱해볼 만한 구체적인 상품을 정확히 5개 추천해줘. 웹 검색은 꼭 필요한 곳에만 아껴서 써
+지금 소싱해볼 만한 구체적인 상품을 7개 추천해줘. 웹 검색은 꼭 필요한 곳에만 아껴서 써
 (최대 3번).
+
+중요: 이건 "마진이 남는 상품만" 보여주는 탭이야. 관세(약 8%)+부가세(10%)+국제배송비(약
+5000원)+플랫폼 수수료(10%)를 다 제하고도 한국 판매가 기준으로 최소 15% 이상 마진이
+남을 것 같은 상품만 골라줘. 원가 대비 판매가가 애매하거나 마진이 거의 없거나 마이너스일
+것 같으면 그 상품은 추천 목록에서 아예 빼고 다른 상품으로 대체해.
 
 [참고: 네이버 쇼핑 트렌드 (한국 소비자 관심도)]
 ${trendSummary}
@@ -173,7 +181,7 @@ ${priceGapSummary}
 
   const fxRate = await fetchJpyToKrwRate();
 
-  return Promise.all(
+  const withMargins: SourcingRecommendation[] = await Promise.all(
     suggestions.map(async (s) => {
       const { sourceUrls, ...rest } = s;
       const costJpy = s.japanWholesalePriceJpy ?? s.japanRetailPriceJpy;
@@ -206,4 +214,8 @@ ${priceGapSummary}
       };
     })
   );
+
+  // 마진이 안 나오는 상품은 "추천 탭"에 노출할 이유가 없으니 여기서 걸러낸다 —
+  // AI의 가격 추정이 낙관적이었을 뿐 실제 계산은 손해인 경우가 있어서.
+  return withMargins.filter((r) => r.marginPercent > MIN_VIABLE_MARGIN_PERCENT);
 }
