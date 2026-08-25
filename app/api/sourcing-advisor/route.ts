@@ -4,6 +4,23 @@ import { computeTrendDashboard } from "@/lib/trendDashboard";
 import { generateSourcingRecommendations } from "@/lib/sourcingAdvisor";
 import type { PriceGapItem } from "@/app/api/price-gap/route";
 
+// 캐시에 예전 스키마(마진을 AI가 텍스트로 추정하던 버전)가 남아있으면 화면이 깨지니,
+// 새 스키마(마진을 서버에서 직접 계산) 모양이 아니면 캐시를 무시하고 바로 재계산한다.
+function isFreshSchema(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => {
+      const record = item as Record<string, unknown>;
+      return (
+        record &&
+        typeof record === "object" &&
+        typeof record.koreaAvgPriceKrw === "number" &&
+        typeof record.marginPercent === "number"
+      );
+    })
+  );
+}
+
 // AI가 웹 검색을 여러 번 하면서 답을 만들어서 기본 10초 제한으로는 부족함.
 // 60초로도 타임아웃 나서(2026-08-25 실측) Fluid Compute 여유치까지 늘려본다 —
 // 플랜에서 허용 안 하면 배포 자체가 거부되니 그때 다시 낮추면 됨.
@@ -20,10 +37,13 @@ export async function GET(req: Request) {
     const ageHours = cached
       ? (Date.now() - cached.generatedAt.getTime()) / (1000 * 60 * 60)
       : Infinity;
+    const cachedRecommendations = cached
+      ? JSON.parse(cached.recommendationsJson)
+      : null;
 
-    if (cached && ageHours < CACHE_TTL_HOURS) {
+    if (cached && ageHours < CACHE_TTL_HOURS && isFreshSchema(cachedRecommendations)) {
       return NextResponse.json({
-        recommendations: JSON.parse(cached.recommendationsJson),
+        recommendations: cachedRecommendations,
         generatedAt: cached.generatedAt,
         cached: true,
       });
