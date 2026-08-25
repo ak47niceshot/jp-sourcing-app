@@ -311,18 +311,18 @@ export default function ResearchPage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="예: 휴대용 선풍기, 화장품, 문구류..."
-            className="flex-1 border border-black/15 dark:border-white/20 rounded px-3 py-2 bg-transparent"
+            className="flex-1 border border-black/15 dark:border-white/20 rounded-full px-4 py-2 bg-transparent focus:outline-none focus:border-blue-500"
           />
           <input
             value={hsCode}
             onChange={(e) => setHsCode(e.target.value)}
             placeholder="HS코드 (예: 841451)"
-            className="w-48 border border-black/15 dark:border-white/20 rounded px-3 py-2 bg-transparent"
+            className="w-48 border border-black/15 dark:border-white/20 rounded-full px-4 py-2 bg-transparent focus:outline-none focus:border-blue-500"
           />
           <button
             type="submit"
             disabled={loading || !hsCode.trim()}
-            className="px-4 py-2 rounded bg-foreground text-background text-sm font-medium disabled:opacity-50"
+            className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition"
           >
             {loading ? "검색 중..." : "검색"}
           </button>
@@ -339,10 +339,10 @@ export default function ResearchPage() {
                   setHsCode(s.code);
                   setKeyword(s.searchTerm);
                 }}
-                className={`px-2 py-1 rounded border ${
+                className={`px-2.5 py-1 rounded-full border transition ${
                   hsCode === s.code
-                    ? "border-foreground bg-black/5 dark:bg-white/10"
-                    : "border-black/15 dark:border-white/20"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium"
+                    : "border-black/15 dark:border-white/20 hover:border-blue-500/50"
                 }`}
               >
                 {s.label} ({s.code})
@@ -359,7 +359,7 @@ export default function ResearchPage() {
                 key={`${s.keyword}-${s.hsCode}-${i}`}
                 type="button"
                 onClick={() => handleRecentSearchClick(s)}
-                className="px-2 py-1 rounded border border-black/15 dark:border-white/20 opacity-80 hover:opacity-100"
+                className="px-2.5 py-1 rounded-full border border-black/15 dark:border-white/20 opacity-80 hover:opacity-100 hover:border-blue-500/50 transition"
               >
                 {s.keyword || "(키워드 없음)"} · HS {s.hsCode}
               </button>
@@ -374,7 +374,7 @@ export default function ResearchPage() {
 
       {result && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <section className="border border-black/10 dark:border-white/10 rounded p-4">
+          <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
             <h2 className="font-semibold mb-1">
               한국의 대일본 수입 통계 (관세청)
             </h2>
@@ -384,11 +384,11 @@ export default function ResearchPage() {
             </p>
             <dl className="grid grid-cols-2 gap-y-1 text-sm mb-4">
               <dt className="opacity-60">총 수입액</dt>
-              <dd>${result.tradeSignal.totalImportDlr.toLocaleString()}</dd>
+              <dd className="font-medium">${result.tradeSignal.totalImportDlr.toLocaleString()}</dd>
               <dt className="opacity-60">총 수입 중량</dt>
-              <dd>{result.tradeSignal.totalImportWgt.toLocaleString()} kg</dd>
+              <dd className="font-medium">{result.tradeSignal.totalImportWgt.toLocaleString()} kg</dd>
               <dt className="opacity-60">현재 환율</dt>
-              <dd>1엔 = {result.fxRate}원</dd>
+              <dd className="font-medium">1엔 = {result.fxRate}원</dd>
             </dl>
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs max-h-40 overflow-y-auto">
               {result.tradeSignal.monthly.map((m) => (
@@ -399,7 +399,7 @@ export default function ResearchPage() {
             </ul>
           </section>
 
-          <section className="border border-black/10 dark:border-white/10 rounded p-4">
+          <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
             <div className="flex items-baseline justify-between mb-1">
               <h2 className="font-semibold">일본 소싱 후보 (라쿠텐)</h2>
               <button
@@ -408,7 +408,7 @@ export default function ResearchPage() {
                   setSelectedIndex(null);
                   setJapanItem(EMPTY_JAPAN_ITEM);
                 }}
-                className="text-xs underline opacity-70 hover:opacity-100"
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
               >
                 직접 입력할게요
               </button>
@@ -427,10 +427,10 @@ export default function ResearchPage() {
                   <li key={i} className="relative">
                     <button
                       onClick={() => handleSelectItem(i)}
-                      className={`w-full text-left text-xs rounded border px-3 py-2 pr-14 transition flex gap-3 ${
+                      className={`w-full text-left text-xs rounded-lg border px-3 py-2 pr-14 transition flex gap-3 ${
                         selectedIndex === i
-                          ? "border-foreground bg-black/5 dark:bg-white/10"
-                          : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30"
+                          ? "border-blue-500 bg-blue-500/5 dark:bg-blue-400/10"
+                          : "border-black/10 dark:border-white/10 hover:border-blue-500/40"
                       }`}
                     >
                       {item.imageUrl && (
@@ -438,7 +438,7 @@ export default function ResearchPage() {
                         <img
                           src={item.imageUrl}
                           alt=""
-                          className="w-14 h-14 object-cover rounded shrink-0"
+                          className="w-14 h-14 object-cover rounded-lg shrink-0"
                         />
                       )}
                       <div>
@@ -505,7 +505,7 @@ export default function ResearchPage() {
                 <button
                   onClick={() => result && startMargin(japanItem, result.fxRate)}
                   disabled={!japanItem.itemName.trim() || japanItem.priceJpy <= 0}
-                  className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
+                  className="px-4 py-2 rounded-full border border-black/20 dark:border-white/20 text-sm hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition disabled:opacity-50"
                 >
                   마진 계산하기
                 </button>
@@ -516,24 +516,24 @@ export default function ResearchPage() {
       )}
 
       {marginInputs && marginResult && (
-        <section className="border border-black/10 dark:border-white/10 rounded p-4">
+        <section className="border-2 border-blue-500/30 rounded-xl p-4">
           <div className="flex gap-3 mb-3">
             {japanItem.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={japanItem.imageUrl}
                 alt=""
-                className="w-16 h-16 object-cover rounded shrink-0"
+                className="w-16 h-16 object-cover rounded-lg shrink-0"
               />
             )}
-            <h2 className="font-semibold self-center">
+            <h2 className="font-bold self-center">
               마진 계산기 —{" "}
               {japanItem.itemUrl ? (
                 <a
                   href={japanItem.itemUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="underline hover:opacity-80"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   {japanItem.itemName} ↗
                 </a>
@@ -607,19 +607,19 @@ export default function ResearchPage() {
             </dl>
 
             <div
-              className={`grid grid-cols-2 gap-4 rounded-lg p-4 ${
+              className={`grid grid-cols-2 gap-4 rounded-xl p-4 ${
                 marginResult.marginKrw < 0
                   ? "bg-red-500/10 border border-red-500/30"
-                  : "bg-green-500/10 border border-green-500/30"
+                  : "bg-blue-500/10 border border-blue-500/30"
               }`}
             >
               <div>
-                <div className="text-xs opacity-60 mb-1">마진액</div>
+                <div className="text-xs font-medium opacity-60 mb-1">마진액</div>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`text-3xl font-black ${
                     marginResult.marginKrw < 0
                       ? "text-red-600 dark:text-red-400"
-                      : "text-green-600 dark:text-green-400"
+                      : "text-blue-600 dark:text-blue-400"
                   }`}
                 >
                   {marginResult.marginKrw < 0 ? "-" : "+"}
@@ -627,12 +627,12 @@ export default function ResearchPage() {
                 </div>
               </div>
               <div>
-                <div className="text-xs opacity-60 mb-1">마진율</div>
+                <div className="text-xs font-medium opacity-60 mb-1">마진율</div>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`text-3xl font-black ${
                     marginResult.marginPercent < 0
                       ? "text-red-600 dark:text-red-400"
-                      : "text-green-600 dark:text-green-400"
+                      : "text-blue-600 dark:text-blue-400"
                   }`}
                 >
                   {marginResult.marginPercent >= 0 ? "+" : ""}
@@ -642,14 +642,14 @@ export default function ResearchPage() {
             </div>
 
             {productDescription && (
-              <div className="mt-4 text-sm bg-black/5 dark:bg-white/10 rounded p-3">
+              <div className="mt-4 text-sm bg-black/5 dark:bg-white/10 rounded-lg p-3">
                 <p className="whitespace-pre-wrap mb-2">{productDescription.summaryKo}</p>
                 {productDescription.keywords.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {productDescription.keywords.map((kw) => (
                       <span
                         key={kw}
-                        className="text-xs px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/15"
+                        className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300"
                       >
                         {kw}
                       </span>
@@ -664,21 +664,21 @@ export default function ResearchPage() {
             <button
               onClick={handleAnalyze}
               disabled={analyzing}
-              className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
+              className="px-4 py-2 rounded-full border border-black/20 dark:border-white/20 text-sm hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition disabled:opacity-50"
             >
               {analyzing ? "분석 중..." : "AI 분석"}
             </button>
             <button
               onClick={handleDescribe}
               disabled={describing}
-              className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
+              className="px-4 py-2 rounded-full border border-black/20 dark:border-white/20 text-sm hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition disabled:opacity-50"
             >
               {describing ? "설명 생성 중..." : "상품 설명 · 키워드"}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 rounded bg-foreground text-background text-sm disabled:opacity-50"
+              className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition"
             >
               {saving ? "저장 중..." : "이 후보 저장"}
             </button>
@@ -686,7 +686,7 @@ export default function ResearchPage() {
           </div>
 
           {aiComment && (
-            <div className="text-sm bg-black/5 dark:bg-white/10 rounded p-3 whitespace-pre-wrap">
+            <div className="text-sm bg-blue-500/5 dark:bg-blue-400/10 border border-blue-500/10 rounded-lg p-3 whitespace-pre-wrap">
               {aiComment}
             </div>
           )}

@@ -24,14 +24,29 @@ export default async function HomePage() {
 
         <HomeSearchBox />
 
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm opacity-70">
-          <Link href="/research" className="hover:opacity-100 hover:underline">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+          <Link
+            href="/research"
+            className="rounded-full bg-blue-600 text-white px-5 py-2 font-medium hover:bg-blue-700 transition"
+          >
             리서치 열기
           </Link>
-          <Link href="/wholesale" className="hover:opacity-100 hover:underline">
+          <Link
+            href="/trends"
+            className="rounded-full border border-black/15 dark:border-white/20 px-5 py-2 font-medium opacity-80 hover:opacity-100 hover:border-blue-500 transition"
+          >
+            동향 보기
+          </Link>
+          <Link
+            href="/wholesale"
+            className="rounded-full border border-black/15 dark:border-white/20 px-5 py-2 font-medium opacity-80 hover:opacity-100 hover:border-blue-500 transition"
+          >
             도매 상품
           </Link>
-          <Link href="/saved" className="hover:opacity-100 hover:underline">
+          <Link
+            href="/saved"
+            className="rounded-full border border-black/15 dark:border-white/20 px-5 py-2 font-medium opacity-80 hover:opacity-100 hover:border-blue-500 transition"
+          >
             저장한 후보
           </Link>
         </div>
@@ -39,17 +54,17 @@ export default async function HomePage() {
 
       {recent.length > 0 && (
         <section className="max-w-2xl mx-auto w-full px-4 pb-16">
-          <h2 className="text-xs font-medium opacity-50 uppercase tracking-wide mb-3">
+          <h2 className="text-xs font-semibold opacity-50 uppercase tracking-wide mb-3">
             최근 저장한 후보
           </h2>
           <ul className="flex flex-col gap-2">
             {recent.map((item) => (
               <li
                 key={item.id}
-                className="border border-black/10 dark:border-white/10 rounded px-4 py-3 text-sm"
+                className="border border-black/10 dark:border-white/10 rounded-lg px-4 py-3 text-sm hover:border-blue-500/50 transition"
               >
-                <span className="font-medium">{item.keyword}</span>
-                <span className="opacity-60 ml-2">
+                <span className="font-semibold">{item.keyword}</span>
+                <span className="opacity-50 ml-2 text-xs">
                   {new Date(item.createdAt).toLocaleString("ko-KR")}
                 </span>
               </li>
@@ -57,9 +72,9 @@ export default async function HomePage() {
           </ul>
           <Link
             href="/saved"
-            className="inline-block mt-3 text-sm underline opacity-80 hover:opacity-100"
+            className="inline-block mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
-            전체 저장 목록 보기
+            전체 저장 목록 보기 →
           </Link>
         </section>
       )}

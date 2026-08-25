@@ -125,7 +125,7 @@ export default function WholesalePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold mb-2">도매 상품</h1>
+        <h1 className="text-xl font-bold mb-2">도매 상품</h1>
         <p className="text-sm opacity-70">
           라쿠텐은 소매가라 가격 경쟁력에 한계가 있어요. 슈퍼딜리버리 같은 도매
           사이트는 공식 API가 없어서, 승인받은 공급사의 상품을 공식{" "}
@@ -136,7 +136,7 @@ export default function WholesalePage() {
 
       <form
         onSubmit={handleUpload}
-        className="border border-black/10 dark:border-white/10 rounded p-4 flex flex-col gap-3"
+        className="border border-black/10 dark:border-white/10 rounded-xl p-4 flex flex-col gap-3"
       >
         <h2 className="font-semibold">CSV 업로드</h2>
         <div className="flex flex-wrap items-end gap-3 text-sm">
@@ -160,7 +160,7 @@ export default function WholesalePage() {
           <button
             type="submit"
             disabled={uploading}
-            className="px-4 py-2 rounded bg-foreground text-background text-sm font-medium disabled:opacity-50"
+            className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition"
           >
             {uploading ? "업로드 중..." : "업로드"}
           </button>
@@ -183,19 +183,19 @@ export default function WholesalePage() {
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && loadItems(keyword)}
           placeholder="업로드한 상품 검색 (일본어/한국어 상관없이 원문 그대로 검색)"
-          className="flex-1 border border-black/15 dark:border-white/20 rounded px-3 py-2 bg-transparent"
+          className="flex-1 border border-black/15 dark:border-white/20 rounded-full px-4 py-2 bg-transparent focus:outline-none focus:border-blue-500"
         />
         <button
           onClick={() => loadItems(keyword)}
           disabled={loading}
-          className="px-4 py-2 rounded border border-black/20 dark:border-white/20 text-sm disabled:opacity-50"
+          className="px-4 py-2 rounded-full border border-black/20 dark:border-white/20 text-sm hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition disabled:opacity-50"
         >
           {loading ? "검색 중..." : "검색"}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section className="border border-black/10 dark:border-white/10 rounded p-4">
+        <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
           <h2 className="font-semibold mb-3">업로드된 도매 상품 ({items.length})</h2>
           {items.length === 0 ? (
             <p className="text-xs opacity-50">
@@ -207,10 +207,10 @@ export default function WholesalePage() {
                 <li key={item.id}>
                   <button
                     onClick={() => handleSelect(item)}
-                    className={`w-full text-left text-xs rounded border px-3 py-2 transition ${
+                    className={`w-full text-left text-xs rounded-lg border px-3 py-2 transition ${
                       selected?.id === item.id
-                        ? "border-foreground bg-black/5 dark:bg-white/10"
-                        : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30"
+                        ? "border-blue-500 bg-blue-500/5 dark:bg-blue-400/10"
+                        : "border-black/10 dark:border-white/10 hover:border-blue-500/40"
                     }`}
                   >
                     <div className="font-medium line-clamp-2">{item.productName}</div>
@@ -229,7 +229,7 @@ export default function WholesalePage() {
         </section>
 
         {marginInputs && marginResult && selected && (
-          <section className="border border-black/10 dark:border-white/10 rounded p-4">
+          <section className="border border-black/10 dark:border-white/10 rounded-xl p-4">
             <h2 className="font-semibold mb-3">마진 계산기 — {selected.productName}</h2>
             <div className="grid grid-cols-2 gap-4 text-sm mb-4">
               <div className="flex flex-col gap-1">
@@ -286,19 +286,19 @@ export default function WholesalePage() {
             </div>
 
             <div
-              className={`grid grid-cols-2 gap-4 rounded-lg p-4 ${
+              className={`grid grid-cols-2 gap-4 rounded-xl p-4 ${
                 marginResult.marginKrw < 0
                   ? "bg-red-500/10 border border-red-500/30"
-                  : "bg-green-500/10 border border-green-500/30"
+                  : "bg-blue-500/10 border border-blue-500/30"
               }`}
             >
               <div>
-                <div className="text-xs opacity-60 mb-1">마진액</div>
+                <div className="text-xs font-medium opacity-60 mb-1">마진액</div>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`text-2xl font-black ${
                     marginResult.marginKrw < 0
                       ? "text-red-600 dark:text-red-400"
-                      : "text-green-600 dark:text-green-400"
+                      : "text-blue-600 dark:text-blue-400"
                   }`}
                 >
                   {marginResult.marginKrw < 0 ? "-" : "+"}
@@ -306,12 +306,12 @@ export default function WholesalePage() {
                 </div>
               </div>
               <div>
-                <div className="text-xs opacity-60 mb-1">마진율</div>
+                <div className="text-xs font-medium opacity-60 mb-1">마진율</div>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`text-2xl font-black ${
                     marginResult.marginPercent < 0
                       ? "text-red-600 dark:text-red-400"
-                      : "text-green-600 dark:text-green-400"
+                      : "text-blue-600 dark:text-blue-400"
                   }`}
                 >
                   {marginResult.marginPercent >= 0 ? "+" : ""}
