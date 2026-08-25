@@ -376,6 +376,9 @@ export default function ResearchPage() {
             ))}
           </div>
         )}
+        {trend && trend.points.length === 0 && (
+          <p className="text-xs opacity-50">이 카테고리는 데이터가 없어요.</p>
+        )}
       </section>
 
       <form onSubmit={handleSearch} className="flex flex-col gap-3">
