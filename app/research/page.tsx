@@ -3,12 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { calculateMargin, MarginInputs, MarginResult } from "@/lib/margin";
 import { suggestHsCodes } from "@/lib/hsCodes";
-import { SHOPPING_CATEGORIES } from "@/lib/naverShoppingCategories";
-import { SHOPPING_KEYWORDS_BY_CATEGORY } from "@/lib/naverShoppingKeywords";
 import type { TradeSignal } from "@/lib/trade";
 import type { RakutenItem } from "@/lib/rakuten";
-import type { ShoppingCategoryTrend, ShoppingKeywordTrend } from "@/lib/naverShoppingInsight";
-import type { SearchTrendGroup } from "@/lib/naverSearchTrend";
+import type { TrendDashboardItem } from "@/app/api/trend-dashboard/route";
 
 type ResearchResponse = {
   tradeSignal: TradeSignal;
@@ -78,94 +75,37 @@ export default function ResearchPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
-  const [selectedCategoryCode, setSelectedCategoryCode] = useState<string | null>(null);
-  const [trend, setTrend] = useState<ShoppingCategoryTrend | null>(null);
-  const [trendLoading, setTrendLoading] = useState(false);
-  const [trendError, setTrendError] = useState<string | null>(null);
-
-  const [categoryKeyword, setCategoryKeyword] = useState("");
-  const [categoryKeywordTrend, setCategoryKeywordTrend] =
-    useState<ShoppingKeywordTrend | null>(null);
-  const [categoryKeywordLoading, setCategoryKeywordLoading] = useState(false);
-  const [categoryKeywordError, setCategoryKeywordError] = useState<string | null>(null);
-
-  const [searchTrend, setSearchTrend] = useState<SearchTrendGroup | null>(null);
-  const [searchTrendLoading, setSearchTrendLoading] = useState(false);
-  const [searchTrendError, setSearchTrendError] = useState<string | null>(null);
+  const [dashboardItems, setDashboardItems] = useState<TrendDashboardItem[] | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const searchFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
   }, []);
 
-  async function handleCategoryClick(code: string, label: string) {
-    setSelectedCategoryCode(code);
-    setTrendLoading(true);
-    setTrendError(null);
-    setTrend(null);
-    setCategoryKeyword("");
-    setCategoryKeywordTrend(null);
-    setCategoryKeywordError(null);
-    try {
-      const res = await fetch("/api/trend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categoryName: label, categoryCode: code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "요청 실패");
-      setTrend(data);
-    } catch (err) {
-      setTrendError(err instanceof Error ? err.message : "알 수 없는 오류");
-    } finally {
-      setTrendLoading(false);
-    }
-  }
-
-  async function handleCategoryKeywordCheck(nextKeyword: string) {
-    setCategoryKeyword(nextKeyword);
-    if (!selectedCategoryCode || !nextKeyword) return;
-    setCategoryKeywordLoading(true);
-    setCategoryKeywordError(null);
-    setCategoryKeywordTrend(null);
-    try {
-      const res = await fetch("/api/shopping-keyword-trend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoryCode: selectedCategoryCode,
-          keyword: nextKeyword,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "요청 실패");
-      setCategoryKeywordTrend(data);
-    } catch (err) {
-      setCategoryKeywordError(err instanceof Error ? err.message : "알 수 없는 오류");
-    } finally {
-      setCategoryKeywordLoading(false);
-    }
-  }
-
-  async function handleSearchTrendCheck() {
-    if (!keyword.trim()) return;
-    setSearchTrendLoading(true);
-    setSearchTrendError(null);
-    setSearchTrend(null);
-    try {
-      const res = await fetch("/api/search-trend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: keyword.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "요청 실패");
-      setSearchTrend(data);
-    } catch (err) {
-      setSearchTrendError(err instanceof Error ? err.message : "알 수 없는 오류");
-    } finally {
-      setSearchTrendLoading(false);
-    }
-  }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setDashboardLoading(true);
+      setDashboardError(null);
+      try {
+        const res = await fetch("/api/trend-dashboard");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "요청 실패");
+        if (!cancelled) setDashboardItems(data.items);
+      } catch (err) {
+        if (!cancelled) {
+          setDashboardError(err instanceof Error ? err.message : "알 수 없는 오류");
+        }
+      } finally {
+        if (!cancelled) setDashboardLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function addRecentSearch(nextKeyword: string, nextHsCode: string) {
     setRecentSearches((prev) => {
@@ -246,6 +186,25 @@ export default function ResearchPage() {
     runSearch(entry.keyword, entry.hsCode);
   }
 
+  function handleDashboardItemClick(item: TrendDashboardItem) {
+    const matchedHsCode = suggestHsCodes(item.keyword)[0]?.code ?? "";
+    setKeyword(item.keyword);
+    setHsCode(matchedHsCode);
+    updateUrl(item.keyword, matchedHsCode, null);
+    if (matchedHsCode) {
+      addRecentSearch(item.keyword, matchedHsCode);
+      runSearch(item.keyword, matchedHsCode);
+    }
+    searchFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function selectItemFromData(data: ResearchResponse, index: number, item: RakutenItem) {
+    setSelectedIndex(index);
+    setShowManualEntry(false);
+    setJapanItem(item);
+    startMargin(item, data.fxRate);
+  }
+
   // 새로고침해도 검색 결과/선택 상품이 유지되도록 URL 쿼리에서 복원
   const restoredFromUrl = useRef(false);
   useEffect(() => {
@@ -270,13 +229,6 @@ export default function ResearchPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function selectItemFromData(data: ResearchResponse, index: number, item: RakutenItem) {
-    setSelectedIndex(index);
-    setShowManualEntry(false);
-    setJapanItem(item);
-    startMargin(item, data.fxRate);
-  }
 
   function handleSelectItem(index: number) {
     if (!result?.japanCandidates) return;
@@ -395,99 +347,54 @@ export default function ResearchPage() {
   return (
     <div className="flex flex-col gap-6">
       <section className="border border-black/10 dark:border-white/10 rounded p-4">
-        <h2 className="font-semibold mb-1">요즘 뜨는 카테고리 (네이버 쇼핑인사이트)</h2>
+        <h2 className="font-semibold mb-1">지금 뜨는 순위 (네이버 쇼핑인사이트)</h2>
         <p className="text-xs opacity-50 mb-3">
-          한국 소비자의 실제 클릭 트렌드 (0~100 상대 지수) · 상품명·가격은 안 나와요 —
-          아이템 후보는 아래에서 라쿠텐으로 검색해서 찾아보세요.
+          최근 완결된 2주 평균을 그 이전 평균과 비교한 증감율 순 · 상품명·가격은 안 나와요 —
+          클릭하면 바로 라쿠텐에서 후보를 찾아드려요.
         </p>
-        <div className="flex flex-wrap gap-2 text-xs mb-3">
-          {SHOPPING_CATEGORIES.map((c) => (
-            <button
-              key={c.code}
-              type="button"
-              onClick={() => handleCategoryClick(c.code, c.label)}
-              className={`px-2 py-1 rounded border ${
-                selectedCategoryCode === c.code
-                  ? "border-foreground bg-black/5 dark:bg-white/10"
-                  : "border-black/15 dark:border-white/20"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
 
-        {trendLoading && <p className="text-xs opacity-50">불러오는 중...</p>}
-        {trendError && (
-          <p className="text-xs text-red-600 dark:text-red-400">{trendError}</p>
+        {dashboardLoading && <p className="text-xs opacity-50">순위 계산 중...</p>}
+        {dashboardError && (
+          <p className="text-xs text-red-600 dark:text-red-400">{dashboardError}</p>
         )}
-        {trend && trend.points.length > 0 && (
-          <div className="flex flex-col gap-1">
-            {trend.points.map((p) => (
-              <div key={p.period} className="flex items-center gap-2 text-xs">
-                <span className="w-24 shrink-0 opacity-60">{p.period}</span>
-                <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
-                  <div
-                    className="bg-blue-600 dark:bg-blue-400 h-3 rounded"
-                    style={{ width: `${Math.max(p.ratio, 2)}%` }}
-                  />
-                </div>
-                <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
-              </div>
+        {dashboardItems && dashboardItems.length === 0 && (
+          <p className="text-xs opacity-50">계산할 데이터가 없어요.</p>
+        )}
+        {dashboardItems && dashboardItems.length > 0 && (
+          <ol className="flex flex-col gap-1.5">
+            {dashboardItems.map((item, i) => (
+              <li key={`${item.categoryCode}-${item.keyword}`}>
+                <button
+                  type="button"
+                  onClick={() => handleDashboardItemClick(item)}
+                  className="w-full flex items-center gap-3 text-left text-sm rounded border border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30 px-3 py-2 transition"
+                >
+                  <span className="w-5 shrink-0 opacity-40 text-xs">{i + 1}</span>
+                  <span className="flex-1">
+                    <span className="font-medium">{item.keyword}</span>
+                    <span className="text-xs opacity-50 ml-2">{item.categoryLabel}</span>
+                  </span>
+                  <span className="text-xs opacity-50 w-16 text-right">
+                    인기 {item.recentAvg.toFixed(0)}
+                  </span>
+                  <span
+                    className={`text-xs font-semibold w-16 text-right ${
+                      item.growthPercent >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {item.growthPercent >= 0 ? "▲" : "▼"}
+                    {Math.abs(item.growthPercent).toFixed(0)}%
+                  </span>
+                </button>
+              </li>
             ))}
-          </div>
-        )}
-        {trend && trend.points.length === 0 && (
-          <p className="text-xs opacity-50">이 카테고리는 데이터가 없어요.</p>
-        )}
-
-        {selectedCategoryCode && (
-          <div className="mt-4 border-t border-black/10 dark:border-white/10 pt-3">
-            <p className="text-xs opacity-60 mb-2">이 카테고리 안의 세부 키워드 트렌드</p>
-            <select
-              value={categoryKeyword}
-              onChange={(e) => handleCategoryKeywordCheck(e.target.value)}
-              className="w-full border border-black/15 dark:border-white/20 rounded px-2 py-1 text-xs bg-transparent mb-2"
-            >
-              <option value="">키워드 선택...</option>
-              {(SHOPPING_KEYWORDS_BY_CATEGORY[selectedCategoryCode] ?? []).map((kw) => (
-                <option key={kw} value={kw}>
-                  {kw}
-                </option>
-              ))}
-            </select>
-            {categoryKeywordLoading && (
-              <p className="text-xs opacity-50">불러오는 중...</p>
-            )}
-            {categoryKeywordError && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                {categoryKeywordError}
-              </p>
-            )}
-            {categoryKeywordTrend && categoryKeywordTrend.points.length > 0 && (
-              <div className="flex flex-col gap-1">
-                {categoryKeywordTrend.points.map((p) => (
-                  <div key={p.period} className="flex items-center gap-2 text-xs">
-                    <span className="w-24 shrink-0 opacity-60">{p.period}</span>
-                    <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
-                      <div
-                        className="bg-purple-600 dark:bg-purple-400 h-3 rounded"
-                        style={{ width: `${Math.max(p.ratio, 2)}%` }}
-                      />
-                    </div>
-                    <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {categoryKeywordTrend && categoryKeywordTrend.points.length === 0 && (
-              <p className="text-xs opacity-50">이 키워드는 데이터가 없어요.</p>
-            )}
-          </div>
+          </ol>
         )}
       </section>
 
-      <form onSubmit={handleSearch} className="flex flex-col gap-3">
+      <form ref={searchFormRef} onSubmit={handleSearch} className="flex flex-col gap-3">
         <div className="flex gap-2">
           <input
             value={keyword}
@@ -495,14 +402,6 @@ export default function ResearchPage() {
             placeholder="예: 휴대용 선풍기, 화장품, 문구류..."
             className="flex-1 border border-black/15 dark:border-white/20 rounded px-3 py-2 bg-transparent"
           />
-          <button
-            type="button"
-            onClick={handleSearchTrendCheck}
-            disabled={searchTrendLoading || !keyword.trim()}
-            className="px-3 py-2 rounded border border-black/20 dark:border-white/20 text-xs disabled:opacity-50 shrink-0"
-          >
-            {searchTrendLoading ? "확인 중..." : "검색어 트렌드"}
-          </button>
           <input
             value={hsCode}
             onChange={(e) => setHsCode(e.target.value)}
@@ -557,35 +456,6 @@ export default function ResearchPage() {
           </div>
         )}
       </form>
-
-      {searchTrendError && (
-        <p className="text-xs text-red-600 dark:text-red-400">{searchTrendError}</p>
-      )}
-      {searchTrend && (
-        <div className="border border-black/10 dark:border-white/10 rounded p-3">
-          <p className="text-xs opacity-60 mb-2">
-            &ldquo;{searchTrend.title}&rdquo; 네이버 통합검색 트렌드
-          </p>
-          {searchTrend.points.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              {searchTrend.points.map((p) => (
-                <div key={p.period} className="flex items-center gap-2 text-xs">
-                  <span className="w-24 shrink-0 opacity-60">{p.period}</span>
-                  <div className="flex-1 bg-black/5 dark:bg-white/10 rounded h-3">
-                    <div
-                      className="bg-green-600 dark:bg-green-400 h-3 rounded"
-                      style={{ width: `${Math.max(p.ratio, 2)}%` }}
-                    />
-                  </div>
-                  <span className="w-10 text-right opacity-60">{p.ratio.toFixed(0)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs opacity-50">이 키워드는 데이터가 없어요.</p>
-          )}
-        </div>
-      )}
 
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
