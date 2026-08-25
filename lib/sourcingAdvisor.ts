@@ -19,7 +19,17 @@ type AiSourcingSuggestion = {
   japanRetailPriceJpy: number;
   japanWholesalePriceJpy: number | null;
   koreaAvgPriceKrw: number;
+  imageUrl: string | null;
 };
+
+// AI가 웹 검색 중 실제로 들른 상품 페이지에서 이미지 URL을 알려주면 써보고, 없거나
+// 이미지가 아닌 것 같으면 버린다(할루시네이션 방지) — 화면에서는 이 URL이 깨지면
+// 카테고리 대표 사진으로 자동 대체한다(app/trends/page.tsx의 onError 참고).
+const DIRECT_IMAGE_URL_PATTERN = /^https:\/\/.+\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i;
+
+function sanitizeImageUrl(value: unknown): string | null {
+  return typeof value === "string" && DIRECT_IMAGE_URL_PATTERN.test(value) ? value : null;
+}
 
 export type SourcingRecommendation = AiSourcingSuggestion & {
   fxRate: number;
@@ -107,11 +117,13 @@ ${priceGapSummary}
 5. japanWholesalePriceJpy: 일본 도매가 (정수, 엔화). 확인 안 되면 null.
 6. koreaAvgPriceKrw: 한국 시장 평균 판매가 (정수, 원화, 웹 검색으로 확인한 실제 가격대의 대표값
    하나 — 범위 말고 숫자 하나로)
+7. imageUrl: 웹 검색 중 실제로 들어간 상품 판매 페이지에서 확인한 상품 이미지의 직접 URL
+   (jpg/png/webp/gif로 끝나는 이미지 파일 링크만). 확실하지 않으면 절대 지어내지 말고 null.
 
 숫자 필드는 콤마나 단위 없이 순수 정수로만 답해 (예: 12000, "12,000원" 아님).
 
 반드시 아래 JSON 배열 형식으로만 답해 (다른 설명 텍스트 없이, 코드블록도 없이):
-[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0}]`,
+[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"imageUrl":null}]`,
       },
     ],
   });
@@ -136,6 +148,7 @@ ${priceGapSummary}
           ? null
           : Number(p.japanWholesalePriceJpy) || null,
       koreaAvgPriceKrw: Number(p.koreaAvgPriceKrw) || 0,
+      imageUrl: sanitizeImageUrl(p.imageUrl),
     }));
   } catch {
     return [];
