@@ -88,7 +88,7 @@ export async function generateSourcingRecommendations(
 
   const message = await client.messages.create({
     model: "claude-opus-5",
-    max_tokens: 5500,
+    max_tokens: 4500,
     output_config: { effort: "low" },
     tools: [
       {
@@ -101,7 +101,7 @@ export async function generateSourcingRecommendations(
       {
         role: "user",
         content: `너는 일본→한국 상품 소싱(수입 후 국내 판매) 전문가야. 아래 참고 자료를 보고,
-지금 소싱해볼 만한 구체적인 상품을 7개 추천해줘. 웹 검색은 꼭 필요한 곳에만 아껴서 써
+지금 소싱해볼 만한 구체적인 상품을 6개 추천해줘. 웹 검색은 꼭 필요한 곳에만 아껴서 써
 (최대 3번).
 
 중요: 이건 "마진이 남는 상품만" 보여주는 탭이야. 관세(약 8%)+부가세(10%)+국제배송비(약
