@@ -14,7 +14,7 @@ const EXTRACTORS: RegExp[] = [
 async function fetchImageFromPage(pageUrl: string): Promise<string | null> {
   try {
     const res = await fetch(pageUrl, {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(4000),
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
@@ -40,10 +40,24 @@ async function fetchImageFromPage(pageUrl: string): Promise<string | null> {
 }
 
 // 첫 후보 URL이 막히거나(403 등) 이미지 태그를 못 찾으면 다음 후보로 넘어간다.
+// 서버리스 함수 시간 제한(maxDuration)에 걸리지 않도록, 후보를 최대 2개까지만 순서대로
+// 시도하고 전체 소요 시간도 8초로 못 박아둔다 — 5개 상품이 각자 이 과정을 거치므로
+// 여기서 시간이 늘어지면 전체 API가 타임아웃 난다(2026-08-26 실측).
+const MAX_CANDIDATES = 2;
+const OVERALL_BUDGET_MS = 8000;
+
 export async function fetchOgImage(pageUrls: string[]): Promise<string | null> {
-  for (const url of pageUrls) {
-    const image = await fetchImageFromPage(url);
-    if (image) return image;
-  }
-  return null;
+  const attempt = (async () => {
+    for (const url of pageUrls.slice(0, MAX_CANDIDATES)) {
+      const image = await fetchImageFromPage(url);
+      if (image) return image;
+    }
+    return null;
+  })();
+
+  const budget = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), OVERALL_BUDGET_MS)
+  );
+
+  return Promise.race([attempt, budget]);
 }
