@@ -31,10 +31,6 @@ export const maxDuration = 120;
 const CACHE_ID = 1;
 const CACHE_TTL_HOURS = 24;
 
-// 임시: 마진 필터링 + 인증상품 제외 규칙이 실제로 반영됐는지 바로 확인하려고
-// 캐시를 한 번 강제로 새로 계산시킨다. 확인 끝나면 이 상수와 조건은 지운다.
-const FORCE_REFRESH_AFTER = new Date("2026-08-26T09:35:00Z");
-
 export async function GET(req: Request) {
   try {
     const cached = await prisma.sourcingAdvisorCache.findUnique({
@@ -47,12 +43,7 @@ export async function GET(req: Request) {
       ? JSON.parse(cached.recommendationsJson)
       : null;
 
-    if (
-      cached &&
-      ageHours < CACHE_TTL_HOURS &&
-      isFreshSchema(cachedRecommendations) &&
-      cached.generatedAt > FORCE_REFRESH_AFTER
-    ) {
+    if (cached && ageHours < CACHE_TTL_HOURS && isFreshSchema(cachedRecommendations)) {
       return NextResponse.json({
         recommendations: cachedRecommendations,
         generatedAt: cached.generatedAt,
