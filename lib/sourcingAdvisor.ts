@@ -4,6 +4,7 @@ import type { PriceGapItem } from "@/app/api/price-gap/route";
 import { calculateMargin } from "@/lib/margin";
 import { fetchJpyToKrwRate } from "@/lib/fx";
 import { fetchOgImage } from "@/lib/ogImage";
+import { searchCoupangProduct } from "@/lib/coupang";
 import { SOURCING_CATEGORIES, type SourcingCategory } from "@/lib/categoryImage";
 
 // 나머지 페이지(리서치/도매)와 같은 기본 가정치 — 마진 계산 공식을 앱 전체에서 통일한다.
@@ -23,6 +24,7 @@ type AiSourcingSuggestion = {
   japanRetailPriceJpy: number;
   japanWholesalePriceJpy: number | null;
   koreaAvgPriceKrw: number;
+  koreaSearchKeyword: string;
   sourceUrls: string[];
 };
 
@@ -36,8 +38,12 @@ function sanitizePageUrl(value: unknown): string | null {
   }
 }
 
-export type SourcingRecommendation = Omit<AiSourcingSuggestion, "sourceUrls"> & {
+export type SourcingRecommendation = Omit<
+  AiSourcingSuggestion,
+  "sourceUrls" | "koreaSearchKeyword"
+> & {
   imageUrl: string | null;
+  coupangProductUrl: string | null;
   fxRate: number;
   japanRetailPriceKrw: number;
   japanWholesalePriceKrw: number | null;
@@ -146,8 +152,13 @@ ${priceGapSummary}
 4. japanRetailPriceJpy: 일본 소매가 추정치 (정수, 엔화, 웹 검색으로 확인)
 5. japanWholesalePriceJpy: 일본 도매가 (정수, 엔화). 확인 안 되면 null.
 6. koreaAvgPriceKrw: 한국 시장 평균 판매가 (정수, 원화, 웹 검색으로 확인한 실제 가격대의 대표값
-   하나 — 범위 말고 숫자 하나로)
-7. sourceUrls: 이 상품의 가격을 확인하려고 실제로 웹 검색해서 들어가본 상품 상세 페이지
+   하나 — 범위 말고 숫자 하나로). 이 값은 참고용 추정치이고, 실제로는 아래 koreaSearchKeyword로
+   쿠팡에서 직접 검색해서 진짜 가격으로 대체할 거야.
+7. koreaSearchKeyword: 이 상품을 쿠팡에서 검색할 때 쓸 짧고 일반적인 검색어 (2~5단어,
+   브랜드명이나 괄호 설명 빼고 실제 쇼핑몰에서 사람들이 칠 법한 말로. 예:
+   productName이 "일본 브랜드 초경량 UV 코팅 3단 자동 접이식 우산 (Wpc./워터프론트 계열)"
+   이면 koreaSearchKeyword는 "3단 자동 접이식 우산" 정도로)
+8. sourceUrls: 이 상품의 가격을 확인하려고 실제로 웹 검색해서 들어가본 상품 상세 페이지
    URL을 최대 3개까지 배열로. 검색 결과 목록 URL이나 지어낸 URL 말고, 진짜 접속해서
    가격을 확인한 페이지 주소만. 여러 사이트에서 같은 상품을 봤다면 전부 적어줘 — 특히
    쿠팡/지마켓/네이버쇼핑은 이미지를 막아놓는 경우가 많으니, 같은 상품을 라쿠텐/11번가/
@@ -157,7 +168,7 @@ ${priceGapSummary}
 숫자 필드는 콤마나 단위 없이 순수 정수로만 답해 (예: 12000, "12,000원" 아님).
 
 반드시 아래 JSON 배열 형식으로만 답해 (다른 설명 텍스트 없이, 코드블록도 없이):
-[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"sourceUrls":[]}]`,
+[{"productName":"...","category":"...","reasoning":"...","japanRetailPriceJpy":0,"japanWholesalePriceJpy":null,"koreaAvgPriceKrw":0,"koreaSearchKeyword":"...","sourceUrls":[]}]`,
       },
     ],
   });
@@ -182,6 +193,7 @@ ${priceGapSummary}
           ? null
           : Number(p.japanWholesalePriceJpy) || null,
       koreaAvgPriceKrw: Number(p.koreaAvgPriceKrw) || 0,
+      koreaSearchKeyword: String(p.koreaSearchKeyword ?? p.productName ?? ""),
       sourceUrls: Array.isArray(p.sourceUrls)
         ? p.sourceUrls.map(sanitizePageUrl).filter((u: string | null): u is string => u !== null)
         : [],
@@ -194,7 +206,28 @@ ${priceGapSummary}
 
   const withMargins: SourcingRecommendation[] = await Promise.all(
     suggestions.map(async (s) => {
-      const { sourceUrls, ...rest } = s;
+      const { sourceUrls, koreaSearchKeyword, ...rest } = s;
+
+      // 한국 판매가/이미지는 AI 추측 대신 쿠팡 파트너스 검색 API의 실제 데이터를 우선
+      // 쓴다 — 검색이 안 되거나 API가 아직 설정 안 됐으면 AI 추정치로 조용히 대체한다.
+      let koreaAvgPriceKrw = s.koreaAvgPriceKrw;
+      let imageUrl: string | null = null;
+      let coupangProductUrl: string | null = null;
+      try {
+        const coupangProduct = await searchCoupangProduct(koreaSearchKeyword);
+        if (coupangProduct && coupangProduct.productPrice > 0) {
+          koreaAvgPriceKrw = coupangProduct.productPrice;
+          imageUrl = coupangProduct.productImage || null;
+          coupangProductUrl = coupangProduct.productUrl || null;
+        }
+      } catch {
+        // 쿠팡 API 키 미설정, 호출 한도 초과 등 — AI 추정치로 계속 진행
+      }
+
+      if (!imageUrl && sourceUrls.length > 0) {
+        imageUrl = await fetchOgImage(sourceUrls);
+      }
+
       const costJpy = s.japanWholesalePriceJpy ?? s.japanRetailPriceJpy;
       const marginResult = calculateMargin({
         priceJpy: costJpy,
@@ -203,13 +236,14 @@ ${priceGapSummary}
         customsDutyPercent: CUSTOMS_DUTY_PERCENT,
         vatPercent: VAT_PERCENT,
         platformFeePercent: PLATFORM_FEE_PERCENT,
-        targetSalePriceKrw: s.koreaAvgPriceKrw,
+        targetSalePriceKrw: koreaAvgPriceKrw,
       });
-      const imageUrl = sourceUrls.length > 0 ? await fetchOgImage(sourceUrls) : null;
 
       return {
         ...rest,
+        koreaAvgPriceKrw,
         imageUrl,
+        coupangProductUrl,
         fxRate,
         japanRetailPriceKrw: s.japanRetailPriceJpy * fxRate,
         japanWholesalePriceKrw:
